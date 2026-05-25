@@ -61,6 +61,15 @@ Production should deploy manually from `main` after staging validation:
 
 Keep the previous image tag available for rollback.
 
+The current GitHub Actions production workflow is manual. It expects these repository secrets:
+
+- `PROD_HOST`
+- `PROD_USER`
+- `PROD_SSH_KEY`
+- `PROD_APP_DIR`
+
+Run it from GitHub Actions on the `main` branch and type `deploy` into the confirmation input.
+
 ## Reverse proxy, media, and static files
 
 Static files are build/runtime artifacts and should not be committed.

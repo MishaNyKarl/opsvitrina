@@ -1,0 +1,38 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "deploy" to deploy main to production
+        required: true
+
+jobs:
+  deploy:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.confirm == 'deploy' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.PROD_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on production server
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_APP_DIR: ${{ secrets.PROD_APP_DIR }}
+        run: |
+          ssh "$PROD_USER@$PROD_HOST" "set -e; \
+            cd '$PROD_APP_DIR'; \
+            mkdir -p backups; \
+            if [ -n \"\$(docker compose --env-file .env -f docker-compose.deploy.yml -p opsvitrina-production ps -q postgres 2>/dev/null)\" ]; then \
+              docker compose --env-file .env -f docker-compose.deploy.yml -p opsvitrina-production exec -T postgres sh -c 'pg_dump -U \"\$POSTGRES_USER\" \"\$POSTGRES_DB\"' > backups/production-\$(date +%Y%m%d-%H%M%S).sql; \
+            fi; \
+            git fetch origin main; \
+            git reset --hard origin/main; \
+            docker compose --env-file .env -f docker-compose.deploy.yml -p opsvitrina-production up -d --build; \
+            docker image prune -f"

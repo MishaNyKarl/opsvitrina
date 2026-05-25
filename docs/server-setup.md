@@ -224,6 +224,30 @@ nano .env
 docker compose --env-file .env -f docker-compose.deploy.yml -p opsvitrina-production up -d --build
 ```
 
+Use these production values unless there is a reason to change them:
+
+- `DJANGO_ALLOWED_HOSTS=read.lifestoruhabstt.info,169.255.57.42,127.0.0.1,localhost`
+- `DJANGO_CSRF_TRUSTED_ORIGINS=https://read.lifestoruhabstt.info`
+- `APP_PORT=127.0.0.1:8020`
+- `APP_VERSION=production`
+
+Create a production admin user:
+
+```bash
+docker compose --env-file .env -f docker-compose.deploy.yml -p opsvitrina-production exec web python manage.py createsuperuser
+```
+
+Add these GitHub Actions secrets for manual production deploy:
+
+- `PROD_HOST`: `169.255.57.42`
+- `PROD_USER`: `root`
+- `PROD_APP_DIR`: `/opt/opsvitrina/production`
+- `PROD_SSH_KEY`: private key whose public key is present in `/root/.ssh/authorized_keys`
+
+Production deploy is intentionally manual:
+
+`GitHub -> Actions -> Deploy production -> Run workflow -> branch main -> confirm deploy`
+
 Before every production deploy, create a database backup:
 
 ```bash
