@@ -88,7 +88,7 @@ Nginx is the public reverse proxy. Django containers listen only on localhost po
 - staging: `127.0.0.1:8010`
 - production: `127.0.0.1:8020`
 
-On the current server, the staging nginx server block also binds explicitly to `169.255.57.42:80` as the default HTTP server. This prevents old/default PHP virtual hosts from handling ACME challenges for `stagingopsvitrinaru.lol`.
+On the current server, the staging nginx server block binds explicitly to `169.255.57.42:80` as the default HTTP server. The production server block also binds to `169.255.57.42:80`, but without `default_server`, so nginx can route `read.lifestoruhabstt.info` by host name.
 
 Copy `deploy/nginx.opsvitrina.conf` from the repository to nginx sites:
 
