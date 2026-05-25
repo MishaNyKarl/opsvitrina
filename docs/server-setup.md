@@ -91,6 +91,7 @@ Nginx is the public reverse proxy. Django containers listen only on localhost po
 Copy `deploy/nginx.opsvitrina.conf` from the repository to nginx sites:
 
 ```bash
+mkdir -p /var/www/letsencrypt
 cp /opt/opsvitrina/staging/deploy/nginx.opsvitrina.conf /etc/nginx/sites-available/opsvitrina.conf
 ln -sf /etc/nginx/sites-available/opsvitrina.conf /etc/nginx/sites-enabled/opsvitrina.conf
 rm -f /etc/nginx/sites-enabled/default
@@ -101,8 +102,16 @@ systemctl reload nginx
 Issue HTTPS certificates after DNS records point to this server:
 
 ```bash
-certbot --nginx -d stagingopsvitrinaru.lol -d read.lifestoruhabstt.info
+certbot certonly --webroot -w /var/www/letsencrypt -d stagingopsvitrinaru.lol
+certbot certonly --webroot -w /var/www/letsencrypt -d read.lifestoruhabstt.info
 certbot renew --dry-run
+```
+
+After certificates are issued, enable HTTPS in nginx with certbot:
+
+```bash
+certbot --nginx -d stagingopsvitrinaru.lol
+certbot --nginx -d read.lifestoruhabstt.info
 ```
 
 ## GitHub access from the server
