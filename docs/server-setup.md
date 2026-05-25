@@ -3,7 +3,7 @@
 Target server:
 
 - Ubuntu 22.04.4 LTS
-- IP: `169.239.181.248`
+- IP: `169.255.57.42`
 - SSH user: `root`
 - Production domain: `read.lifestoruhabstt.info`
 - Staging domain: `stagingopsvitrinaru.lol`
@@ -17,8 +17,8 @@ Recommended paths:
 
 Create two `A` records:
 
-- `stagingopsvitrinaru.lol` -> `169.239.181.248`
-- `read.lifestoruhabstt.info` -> `169.239.181.248`
+- `stagingopsvitrinaru.lol` -> `169.255.57.42`
+- `read.lifestoruhabstt.info` -> `169.255.57.42`
 
 Wait until both records resolve before issuing HTTPS certificates.
 
@@ -88,7 +88,7 @@ Nginx is the public reverse proxy. Django containers listen only on localhost po
 - staging: `127.0.0.1:8010`
 - production: `127.0.0.1:8020`
 
-On the current server, the staging nginx server block also binds explicitly to `169.239.181.248:80` as the default HTTP server. This prevents old/default PHP virtual hosts from handling ACME challenges for `stagingopsvitrinaru.lol`.
+On the current server, the staging nginx server block also binds explicitly to `169.255.57.42:80` as the default HTTP server. This prevents old/default PHP virtual hosts from handling ACME challenges for `stagingopsvitrinaru.lol`.
 
 Copy `deploy/nginx.opsvitrina.conf` from the repository to nginx sites:
 
@@ -199,7 +199,7 @@ Add the private key `opsvitrina_staging_actions` to GitHub Actions secrets:
 
 Add these secrets too:
 
-- `STAGING_HOST`: `169.239.181.248`
+- `STAGING_HOST`: `169.255.57.42`
 - `STAGING_USER`: `root`
 - `STAGING_APP_DIR`: `/opt/opsvitrina/staging`
 
