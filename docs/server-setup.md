@@ -107,6 +107,8 @@ certbot renew --dry-run
 
 ## GitHub access from the server
 
+This key lets the server pull code from GitHub. It is different from the GitHub Actions key used later to connect from GitHub to the server.
+
 If the repository is private, create a read-only deploy key on the server:
 
 ```bash
@@ -117,6 +119,12 @@ cat /root/.ssh/opsvitrina_github.pub
 Add the public key to GitHub:
 
 `Repository -> Settings -> Deploy keys -> Add deploy key`
+
+Use:
+
+- title: `opsvitrina-server-readonly`
+- key: contents of `/root/.ssh/opsvitrina_github.pub`
+- allow write access: disabled
 
 Use this SSH config:
 
@@ -167,7 +175,7 @@ docker compose --env-file .env -f docker-compose.deploy.yml -p opsvitrina-stagin
 
 ## GitHub Actions staging deploy key
 
-Create an SSH key locally or on the server for GitHub Actions to connect to the server:
+Create an SSH key locally or on the server for GitHub Actions to connect to the server. This is the opposite direction from the server deploy key above.
 
 ```bash
 ssh-keygen -t ed25519 -C "github-actions-opsvitrina-staging" -f opsvitrina_staging_actions
@@ -185,6 +193,12 @@ Add these secrets too:
 - `STAGING_APP_DIR`: `/opt/opsvitrina/staging`
 
 After that, every successful CI run on `staging` will deploy staging automatically.
+
+After adding `STAGING_SSH_KEY` to GitHub secrets, remove the private key file from the server if it was generated inside the project checkout:
+
+```bash
+rm -f /opt/opsvitrina/staging/opsvitrina_staging_actions /opt/opsvitrina/staging/opsvitrina_staging_actions.pub
+```
 
 ## Production
 
