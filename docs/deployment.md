@@ -2,6 +2,8 @@
 
 This project should use separate environments for development, staging, and production.
 
+Current server plan is documented in `docs/server-setup.md`.
+
 ## Branch model
 
 - `main`: production-ready code.
@@ -37,6 +39,13 @@ Staging can deploy automatically from `staging` or `develop`:
 5. Run `collectstatic`.
 6. Restart the web container.
 7. Run a healthcheck.
+
+The current GitHub Actions staging workflow deploys from the `staging` branch after CI passes. It expects these repository secrets:
+
+- `STAGING_HOST`
+- `STAGING_USER`
+- `STAGING_SSH_KEY`
+- `STAGING_APP_DIR`
 
 ## Production deployment
 
