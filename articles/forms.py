@@ -2,7 +2,7 @@ from django import forms
 
 from tracking.models import TrackerProfile
 
-from .models import Article, ArticleGroup, ArticleStatus, ArticleType, OutboundMarkValueMode
+from .models import Article, ArticleGroup, ArticleGroupMembership, ArticleStatus, ArticleType, OutboundMarkValueMode
 
 
 class ArticleForm(forms.ModelForm):
@@ -100,6 +100,18 @@ class ArticleForm(forms.ModelForm):
         article.groups.clear()
         if selected_group:
             article.groups.add(selected_group)
+            ArticleGroupMembership.objects.get_or_create(
+                group=selected_group,
+                article=article,
+                defaults={
+                    'priority': 50,
+                    'utm_query': '',
+                    'is_active': True,
+                },
+            )
+            ArticleGroupMembership.objects.filter(article=article).exclude(group=selected_group).delete()
+        else:
+            ArticleGroupMembership.objects.filter(article=article).delete()
         return selected_group
 
 

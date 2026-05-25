@@ -528,6 +528,36 @@ a.tag:hover {
   color: #5d6676;
 }
 
+.copy-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.wide-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.wide-section h3 {
+  margin: 0;
+}
+
+.compact-table input[type="number"] {
+  max-width: 120px;
+}
+
+.membership-actions {
+  align-items: center;
+  margin-top: 16px;
+}
+
+.membership-actions select {
+  max-width: 420px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(260px, 1fr));
@@ -691,6 +721,7 @@ a.tag:hover {
   .topbar-right,
   .filters,
   .form-grid,
+  .copy-row,
   .inline-control-form,
   .banner-edit-layout,
   .metric-grid {

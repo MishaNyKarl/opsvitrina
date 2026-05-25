@@ -5,8 +5,17 @@
   <div class="breadcrumbs"><a href="{% url 'articles:list' %}">Статьи</a> / {{ group.name }}</div>
   <h2>{{ page_title }}</h2>
 
+  <div class="flow-url">
+    <strong>Публичная ссылка группы</strong>
+    <div class="copy-row">
+      <input id="groupPublicUrl" type="text" value="{{ public_url }}" readonly>
+      <button class="button" type="button" data-copy-target="groupPublicUrl">Скопировать ссылку</button>
+    </div>
+  </div>
+
   <form method="post" class="form-grid">
     {% csrf_token %}
+    <input type="hidden" name="form_action" value="settings">
     {{ form.non_field_errors }}
     {% for field in form %}
       <label class="{% if field.name == 'description' %}wide{% endif %}">
@@ -21,9 +30,77 @@
     </div>
   </form>
 
+  <div class="wide-section">
+    <h3>Ротация статей в группе</h3>
+    <p class="panel-subtitle">Приоритет управляет долей показов. При одинаковых приоритетах статьи будут открываться по очереди.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="form_action" value="memberships">
+      <table class="data-table compact-table">
+        <thead>
+          <tr>
+            <th>Статья</th>
+            <th>Приоритет</th>
+            <th>UTM</th>
+            <th>Активна</th>
+            <th>Показы</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for membership in memberships %}
+            <tr>
+              <td><a href="{% url 'articles:update' membership.article.pk %}">{{ membership.article.title }}</a></td>
+              <td>
+                <input type="number" min="0" name="membership_{{ membership.id }}_priority" value="{{ membership.priority }}">
+              </td>
+              <td>
+                <input type="text" name="membership_{{ membership.id }}_utm_query" value="{{ membership.utm_query }}" placeholder="utm_source=...&utm_campaign=...">
+              </td>
+              <td>
+                <input type="checkbox" name="membership_{{ membership.id }}_is_active" {% if membership.is_active %}checked{% endif %}>
+              </td>
+              <td>{{ membership.impressions }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="empty">В группе пока нет статей</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="form-actions membership-actions">
+        <select name="add_article">
+          <option value="">Добавить статью в группу</option>
+          {% for article in available_articles %}
+            <option value="{{ article.id }}">{{ article.title }}</option>
+          {% endfor %}
+        </select>
+        <button class="button primary" type="submit">Сохранить ротацию</button>
+      </div>
+    </form>
+  </div>
+
   <form method="post" action="{% url 'articles:group_delete' group.pk %}" class="danger-form" onsubmit="return confirm('Удалить группу статей «{{ group.name|escapejs }}»? Статьи останутся, но связь с группой будет снята.');">
     {% csrf_token %}
     <button class="button danger" type="submit">Удалить группу статей</button>
   </form>
 </div>
+<script>
+  (() => {
+    document.querySelectorAll('[data-copy-target]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const input = document.getElementById(button.dataset.copyTarget);
+        if (!input) return;
+        input.select();
+        try {
+          await navigator.clipboard.writeText(input.value);
+        } catch (_error) {
+          document.execCommand('copy');
+        }
+        button.textContent = 'Скопировано';
+        window.setTimeout(() => {
+          button.textContent = 'Скопировать ссылку';
+        }, 1500);
+      });
+    });
+  })();
+</script>
 {% endblock %}

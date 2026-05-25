@@ -16,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .forms import ArticleForm, ArticleGroupForm
-from .models import Article, ArticleGroup, ArticleStatus, ArticleType, Vertical
+from .models import Article, ArticleGroup, ArticleGroupMembership, ArticleStatus, ArticleType, Vertical
 from banners.models import Banner, BannerGroup, BannerPlacement, BannerSlot, BannerStatus, BannerTier, CreativeHeadline, CreativeImage
 from tracking.models import ArticleBehaviorEvent, VisitEvent
 
@@ -39,6 +39,14 @@ def _append_query_string(url, query_string):
     query_items = parse_qsl(parts.query, keep_blank_values=True)
     query_items.extend(parse_qsl(query_string, keep_blank_values=True))
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query_items), parts.fragment))
+
+
+def _merge_query_strings(*query_strings):
+    query_items = []
+    for query_string in query_strings:
+        if query_string:
+            query_items.extend(parse_qsl(query_string, keep_blank_values=True))
+    return urlencode(query_items)
 
 
 def _append_article_mark(url, article):
@@ -245,9 +253,12 @@ def _inject_html_banners(html, article, request):
     return _inject_html_banner_assets(html)
 
 
-def _render_article_response(request, article):
+def _render_article_response(request, article, extra_query_string=''):
     if article.article_type == ArticleType.EXTERNAL and article.external_url:
-        target_url = _append_query_string(article.external_url, request.META.get('QUERY_STRING', ''))
+        target_url = _append_query_string(
+            article.external_url,
+            _merge_query_strings(request.META.get('QUERY_STRING', ''), extra_query_string),
+        )
         target_url = _append_article_mark(target_url, article)
         return redirect(target_url)
 
@@ -264,6 +275,49 @@ def _render_article_response(request, article):
         'banner_slots': _article_banners(article, request),
         'tracking_config': _article_tracking_config(article),
     })
+
+
+def _sync_group_memberships(group):
+    existing_article_ids = set(group.memberships.values_list('article_id', flat=True))
+    missing_article_ids = (
+        group.articles
+        .exclude(id__in=existing_article_ids)
+        .values_list('id', flat=True)
+    )
+    ArticleGroupMembership.objects.bulk_create([
+        ArticleGroupMembership(group=group, article_id=article_id)
+        for article_id in missing_article_ids
+    ])
+
+
+def _eligible_group_memberships(group):
+    _sync_group_memberships(group)
+    return (
+        ArticleGroupMembership.objects
+        .filter(
+            group=group,
+            article__groups=group,
+            is_active=True,
+            priority__gt=0,
+            article__status=ArticleStatus.ACTIVE,
+        )
+        .select_related('article', 'article__category', 'article__vertical', 'article__owner')
+        .order_by('id')
+    )
+
+
+def _select_group_membership(group):
+    memberships = list(_eligible_group_memberships(group))
+    if not memberships:
+        raise Http404('No active articles in group')
+
+    def score(membership):
+        return membership.impressions / max(membership.priority, 1)
+
+    selected = min(memberships, key=lambda membership: (score(membership), membership.id))
+    ArticleGroupMembership.objects.filter(pk=selected.pk).update(impressions=models.F('impressions') + 1)
+    selected.impressions += 1
+    return selected
 
 
 def _eligible_article_banners(article, display_tier, slot, user):
@@ -428,18 +482,56 @@ def article_delete(request, pk):
 def article_group_update(request, pk):
     group = get_object_or_404(ArticleGroup.objects.visible_for(request.user), pk=pk)
     if request.method == 'POST':
-        form = ArticleGroupForm(request.POST, instance=group, user=request.user)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Группа статей обновлена.')
+        form_action = request.POST.get('form_action', 'settings')
+        if form_action == 'memberships':
+            _sync_group_memberships(group)
+            with transaction.atomic():
+                for membership in group.memberships.select_related('article'):
+                    prefix = f'membership_{membership.id}'
+                    try:
+                        priority = int(request.POST.get(f'{prefix}_priority') or 0)
+                    except (TypeError, ValueError):
+                        priority = 0
+                    membership.priority = max(priority, 0)
+                    membership.utm_query = (request.POST.get(f'{prefix}_utm_query') or '').strip().lstrip('?')
+                    membership.is_active = request.POST.get(f'{prefix}_is_active') == 'on'
+                    membership.save(update_fields=['priority', 'utm_query', 'is_active', 'updated_at'])
+
+                add_article_id = request.POST.get('add_article')
+                if add_article_id:
+                    article = get_object_or_404(Article.objects.visible_for(request.user), pk=add_article_id)
+                    article.groups.add(group)
+                    ArticleGroupMembership.objects.get_or_create(group=group, article=article)
+
+            messages.success(request, 'Настройки ротации группы обновлены.')
             return redirect('articles:group_update', pk=group.pk)
+        else:
+            form = ArticleGroupForm(request.POST, instance=group, user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Группа статей обновлена.')
+                return redirect('articles:group_update', pk=group.pk)
     else:
         form = ArticleGroupForm(instance=group, user=request.user)
+
+    _sync_group_memberships(group)
+    memberships = group.memberships.select_related('article').order_by('article__title')
+    used_article_ids = memberships.values_list('article_id', flat=True)
+    available_articles = (
+        Article.objects
+        .visible_for(request.user)
+        .filter(status=ArticleStatus.ACTIVE)
+        .exclude(id__in=used_article_ids)
+        .order_by('title')
+    )
 
     return render(request, 'articles/article_group_form.html', {
         'page_title': 'Редактирование группы статей',
         'form': form,
         'group': group,
+        'memberships': memberships,
+        'available_articles': available_articles,
+        'public_url': request.build_absolute_uri(group.get_public_url()),
     })
 
 
@@ -576,6 +668,16 @@ def public_article(request, public_id):
         status=ArticleStatus.ACTIVE,
     )
     return _render_article_response(request, article)
+
+
+def public_article_group(request, public_id):
+    group = get_object_or_404(ArticleGroup, public_id=public_id)
+    membership = _select_group_membership(group)
+    target_url = _append_query_string(
+        membership.article.get_public_url(),
+        _merge_query_strings(request.META.get('QUERY_STRING', ''), membership.utm_query),
+    )
+    return redirect(target_url)
 
 
 @csrf_exempt

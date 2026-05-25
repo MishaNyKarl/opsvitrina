@@ -66,6 +66,7 @@ class Vertical(TimestampedModel):
 class ArticleGroup(OwnedModel):
     name = models.CharField('Название группы', max_length=160)
     slug = models.SlugField('Slug', max_length=180, blank=True)
+    public_id = models.UUIDField('Публичный ID', default=uuid.uuid4, unique=True, editable=False)
     geo = models.CharField('GEO', max_length=2, blank=True)
     vertical = models.ForeignKey(
         Vertical,
@@ -101,6 +102,43 @@ class ArticleGroup(OwnedModel):
 
     def __str__(self):
         return self.name
+
+    def get_public_url(self):
+        return reverse('public_article_group', kwargs={'public_id': self.public_id})
+
+
+class ArticleGroupMembership(TimestampedModel):
+    group = models.ForeignKey(
+        ArticleGroup,
+        verbose_name='Группа статей',
+        on_delete=models.CASCADE,
+        related_name='memberships',
+    )
+    article = models.ForeignKey(
+        'Article',
+        verbose_name='Статья',
+        on_delete=models.CASCADE,
+        related_name='group_memberships',
+    )
+    priority = models.PositiveIntegerField('Приоритет', default=50)
+    utm_query = models.CharField('UTM для этой статьи', max_length=500, blank=True)
+    is_active = models.BooleanField('Активна в группе', default=True)
+    impressions = models.PositiveIntegerField('Показы из группы', default=0)
+
+    class Meta:
+        verbose_name = 'Статья в группе'
+        verbose_name_plural = 'Статьи в группах'
+        ordering = ['group', 'article']
+        constraints = [
+            models.UniqueConstraint(fields=['group', 'article'], name='unique_article_group_membership'),
+        ]
+        indexes = [
+            models.Index(fields=['group', 'is_active', 'priority']),
+            models.Index(fields=['article', 'group']),
+        ]
+
+    def __str__(self):
+        return f'{self.group} / {self.article}'
 
 
 class Article(OwnedModel):
