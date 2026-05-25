@@ -15,8 +15,8 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
-      - media_data:/app/media
-      - static_data:/app/staticfiles
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
@@ -37,5 +37,3 @@ services:
 
 volumes:
   postgres_data:
-  media_data:
-  static_data:

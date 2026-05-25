@@ -61,8 +61,10 @@ Production should deploy manually from `main` after staging validation:
 
 Keep the previous image tag available for rollback.
 
-## Media and static files
+## Reverse proxy, media, and static files
 
 Static files are build/runtime artifacts and should not be committed.
 
-Media files are user/content uploads. For the first production setup they can live in a persistent Docker volume. Later, move media to S3-compatible storage when traffic and team size grow.
+Nginx is the public reverse proxy and should serve `/static/` and `/media/` directly from persistent host paths. The Django containers listen on localhost-only ports.
+
+Media files are user/content uploads. For the first production setup they can live in persistent Docker bind mounts. Later, move media to S3-compatible storage when traffic and team size grow.

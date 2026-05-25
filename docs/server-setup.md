@@ -20,7 +20,7 @@ Create two `A` records:
 - `stagingopsvitrinaru.lol` -> `169.239.181.248`
 - `read.lifestoruhabstt.info` -> `169.239.181.248`
 
-Wait until both records resolve before starting Caddy. Caddy will issue HTTPS certificates automatically.
+Wait until both records resolve before issuing HTTPS certificates.
 
 ## Base packages
 
@@ -29,7 +29,7 @@ Run on the server as `root`:
 ```bash
 apt update
 apt upgrade -y
-apt install -y ca-certificates curl gnupg git ufw
+apt install -y ca-certificates curl gnupg git ufw nginx certbot python3-certbot-nginx
 ```
 
 ## Firewall
@@ -81,40 +81,28 @@ docker version
 docker compose version
 ```
 
-## Caddy
+## Nginx
+
+Nginx is the public reverse proxy. Django containers listen only on localhost ports:
+
+- staging: `127.0.0.1:8010`
+- production: `127.0.0.1:8020`
+
+Copy `deploy/nginx.opsvitrina.conf` from the repository to nginx sites:
 
 ```bash
-apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
-  | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
-  > /etc/apt/sources.list.d/caddy-stable.list
-apt update
-apt install -y caddy
-systemctl enable --now caddy
+cp /opt/opsvitrina/staging/deploy/nginx.opsvitrina.conf /etc/nginx/sites-available/opsvitrina.conf
+ln -sf /etc/nginx/sites-available/opsvitrina.conf /etc/nginx/sites-enabled/opsvitrina.conf
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
+systemctl reload nginx
 ```
 
-Copy `deploy/Caddyfile` from the repository to `/etc/caddy/Caddyfile`, then reload:
+Issue HTTPS certificates after DNS records point to this server:
 
 ```bash
-caddy validate --config /etc/caddy/Caddyfile
-systemctl reload caddy
-```
-
-If Caddy fails with `listening on :80: bind: address already in use`, find the process that already uses ports 80 or 443:
-
-```bash
-ss -ltnp | grep -E ':80|:443'
-systemctl status nginx apache2 caddy --no-pager
-```
-
-Usually this means nginx or apache is already running. Stop and disable the conflicting service if Caddy will be the public reverse proxy:
-
-```bash
-systemctl stop nginx apache2 2>/dev/null || true
-systemctl disable nginx apache2 2>/dev/null || true
-systemctl restart caddy
-systemctl status caddy --no-pager
+certbot --nginx -d stagingopsvitrinaru.lol -d read.lifestoruhabstt.info
+certbot renew --dry-run
 ```
 
 ## GitHub access from the server
