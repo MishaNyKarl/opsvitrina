@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel form-panel">
+  <div class="breadcrumbs"><a href="{% url 'articles:list' %}">Статьи</a> / {{ group.name }}</div>
+  <h2>{{ page_title }}</h2>
+
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label class="{% if field.name == 'description' %}wide{% endif %}">
+        <span>{{ field.label }}</span>
+        {{ field }}
+        {{ field.errors }}
+      </label>
+    {% endfor %}
+    <div class="form-actions wide">
+      <button class="button primary" type="submit">Сохранить</button>
+      <a class="button" href="{% url 'articles:list' %}">Отмена</a>
+    </div>
+  </form>
+
+  <form method="post" action="{% url 'articles:group_delete' group.pk %}" class="danger-form" onsubmit="return confirm('Удалить группу статей «{{ group.name|escapejs }}»? Статьи останутся, но связь с группой будет снята.');">
+    {% csrf_token %}
+    <button class="button danger" type="submit">Удалить группу статей</button>
+  </form>
+</div>
+{% endblock %}

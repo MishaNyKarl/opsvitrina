@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Группы баннеров</h2>
+    <a class="button primary" href="{% url 'banners:upload' %}">Загрузить креативы</a>
+  </div>
+
+  <div class="group-grid">
+    {% for group in groups %}
+      <article class="group-card">
+        <h3><a href="{% url 'banners:group_update' group.pk %}">{{ group.name }}</a></h3>
+        <dl>
+          <div><dt>Картинки</dt><dd>{{ group.images.count }}</dd></div>
+          <div><dt>Заголовки</dt><dd>{{ group.headlines.count }}</dd></div>
+          <div><dt>Баннеры</dt><dd>{{ group.banners.count }}</dd></div>
+          <div><dt>Исключения</dt><dd>{% if group.excluded_slots %}{{ group.excluded_slots|length }}{% else %}0{% endif %}</dd></div>
+          <div><dt>Ссылка</dt><dd>{% if group.target_url %}есть{% else %}-{% endif %}</dd></div>
+          <div><dt>UTM-параметр</dt><dd>{{ group.banner_utm_param }}</dd></div>
+        </dl>
+      </article>
+    {% empty %}
+      <div class="empty">Групп баннеров пока нет</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Баннеры</h2>
+  </div>
+
+  <form class="filters" method="get">
+    {{ form.q }}
+    {{ form.group }}
+    {{ form.display_tier }}
+    {{ form.status }}
+    <button class="button primary" type="submit">Применить</button>
+    <a class="button" href="{% url 'banners:list' %}">Очистить</a>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Креатив</th>
+        <th>Заголовок</th>
+        <th>Группа</th>
+        <th>UTM</th>
+        <th>UTM-параметр</th>
+        <th>Ссылка</th>
+        <th>Эшелон</th>
+        <th>Приоритет</th>
+        <th>Показы</th>
+        <th>Клики</th>
+        <th>CTR</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for banner in page_obj %}
+        <tr>
+          <td><a href="{% url 'banners:update' banner.pk %}">{{ banner.id }}</a></td>
+          <td>
+            {% if banner.image.image %}
+              <img class="thumb" src="{{ banner.image.image.url }}" alt="">
+            {% else %}
+              <span class="thumb placeholder"></span>
+            {% endif %}
+          </td>
+          <td><a href="{% url 'banners:update' banner.pk %}">{{ banner.headline.text }}</a></td>
+          <td><a href="{% url 'banners:group_update' banner.group.pk %}">{{ banner.group.name }}</a></td>
+          <td><code>{{ banner.utm_key }}</code></td>
+          <td><code>{{ banner.effective_banner_utm_param }}</code></td>
+          <td>{% if banner.target_url %}своя{% elif banner.group.target_url %}из группы{% else %}-{% endif %}</td>
+          <td>{{ banner.get_display_tier_display }}</td>
+          <td>{{ banner.priority }}</td>
+          <td>{{ banner.impressions }}</td>
+          <td>{{ banner.clicks }}</td>
+          <td>{{ banner.ctr }}%</td>
+          <td><span class="status green">{{ banner.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="13" class="empty">Баннеров пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

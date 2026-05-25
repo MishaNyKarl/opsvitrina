@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel form-panel">
+  <div class="breadcrumbs"><a href="{% url 'banners:list' %}">Баннеры</a> / Загрузка креативов</div>
+  <h2>Загрузка креативов</h2>
+
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label>
+      <span>{{ form.group_name.label }}</span>
+      {{ form.group_name }}
+      {{ form.group_name.errors }}
+    </label>
+    <label>
+      <span>{{ form.target_url.label }}</span>
+      {{ form.target_url }}
+      {% if form.target_url.help_text %}<small class="help-text">{{ form.target_url.help_text }}</small>{% endif %}
+      {{ form.target_url.errors }}
+    </label>
+    <label>
+      <span>{{ form.banner_utm_param.label }}</span>
+      {{ form.banner_utm_param }}
+      {% if form.banner_utm_param.help_text %}<small class="help-text">{{ form.banner_utm_param.help_text }}</small>{% endif %}
+      {{ form.banner_utm_param.errors }}
+    </label>
+    <label>
+      <span>{{ form.priority.label }}</span>
+      {{ form.priority }}
+      {{ form.priority.errors }}
+    </label>
+    <label>
+      <span>{{ form.display_tier.label }}</span>
+      {{ form.display_tier }}
+      {{ form.display_tier.errors }}
+    </label>
+    <label class="wide">
+      <span>{{ form.excluded_slots.label }}</span>
+      {{ form.excluded_slots }}
+      {% if form.excluded_slots.help_text %}<small class="help-text">{{ form.excluded_slots.help_text }}</small>{% endif %}
+      {{ form.excluded_slots.errors }}
+    </label>
+    <label class="wide">
+      <span>{{ form.description.label }}</span>
+      {{ form.description }}
+      {{ form.description.errors }}
+    </label>
+    <label class="wide">
+      <span>{{ form.articles.label }}</span>
+      {{ form.articles }}
+      {{ form.articles.errors }}
+    </label>
+    <label class="wide">
+      <span>{{ form.article_groups.label }}</span>
+      {{ form.article_groups }}
+      {{ form.article_groups.errors }}
+    </label>
+    <label class="wide">
+      <span>{{ form.images.label }}</span>
+      {{ form.images }}
+      {{ form.images.errors }}
+    </label>
+    <label class="wide">
+      <span>{{ form.headlines.label }}</span>
+      {{ form.headlines }}
+      {{ form.headlines.errors }}
+    </label>
+    <div class="form-actions wide">
+      <button class="button primary" type="submit">Создать баннеры</button>
+      <a class="button" href="{% url 'banners:list' %}">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

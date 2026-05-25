@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block content %}
+{{ form.media }}
+<div class="panel form-panel">
+  <div class="breadcrumbs"><a href="{% url 'articles:list' %}">Статьи</a> / {{ page_title }}</div>
+  <h2>{{ page_title }}</h2>
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label class="{% if field.name == 'body' %}wide{% endif %}" data-article-field="{{ field.name }}">
+        <span>{{ field.label }}</span>
+        {{ field }}
+        {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </label>
+    {% endfor %}
+  <div class="form-actions wide">
+    <button class="button primary" type="submit">Сохранить</button>
+      {% if article %}
+        <a class="button" href="{% url 'articles:preview' article.pk %}" target="_blank">Посмотреть статью</a>
+        {% if article.status == "active" %}
+          <a class="button" href="{{ article.get_public_url }}" target="_blank">Публичная ссылка</a>
+        {% endif %}
+      {% endif %}
+    <a class="button" href="{% url 'articles:list' %}">Отмена</a>
+  </div>
+  </form>
+  {% if article %}
+    <form method="post" action="{% url 'articles:delete' article.pk %}" class="danger-form" onsubmit="return confirm('Удалить статью «{{ article.title|escapejs }}»? Это действие нельзя отменить.');">
+      {% csrf_token %}
+      <button class="button danger" type="submit">Удалить статью</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if article and banner_dashboard %}
+<div class="panel article-banner-dashboard">
+  <div class="panel-header">
+    <div>
+      <h2>Баннеры на статье</h2>
+      <p class="panel-subtitle">Закрепление отключает авторотацию для выбранного слота и эшелона. Если закрепления нет, слот работает по обычной ротации.</p>
+    </div>
+    {% if banner_dashboard.article_group %}
+      <span class="status">Группа: {{ banner_dashboard.article_group.name }}</span>
+    {% else %}
+      <span class="status">Без группы статей</span>
+    {% endif %}
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Эшелон</th>
+        <th>Слот</th>
+        <th>Сейчас</th>
+        <th>Выбрать баннер</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in banner_dashboard.rows %}
+        <tr>
+          <td>{{ row.tier_label }}</td>
+          <td>{{ row.slot_label }}</td>
+          <td>
+            {% if row.article_pin %}
+              <strong>#{{ row.article_pin.banner.id }}</strong> {{ row.article_pin.banner.headline.text }}
+              <span class="tag">статья</span>
+              <div class="muted-line">CTR {{ row.article_pin.banner.ctr }}%, показы {{ row.article_pin.banner.impressions }}, клики {{ row.article_pin.banner.clicks }}</div>
+            {% elif row.group_pin %}
+              <strong>#{{ row.group_pin.banner.id }}</strong> {{ row.group_pin.banner.headline.text }}
+              <span class="tag">группа</span>
+              <div class="muted-line">CTR {{ row.group_pin.banner.ctr }}%, показы {{ row.group_pin.banner.impressions }}, клики {{ row.group_pin.banner.clicks }}</div>
+            {% else %}
+              <span class="muted-line">Авторотация</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{% url 'articles:pin_banner' article.pk %}" class="inline-control-form">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="pin">
+              <input type="hidden" name="slot" value="{{ row.slot }}">
+              <input type="hidden" name="display_tier" value="{{ row.tier }}">
+              <select name="banner" required>
+                <option value="">Выбрать</option>
+                {% for banner in row.candidates %}
+                  <option value="{{ banner.id }}" {% if row.effective_pin and row.effective_pin.banner_id == banner.id %}selected{% endif %}>
+                    #{{ banner.id }} | CTR {{ banner.ctr }}% | {{ banner.headline.text|truncatechars:70 }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button class="button small primary" type="submit" name="scope" value="article">Закрепить на статье</button>
+              <button class="button small" type="submit" name="scope" value="group" {% if not banner_dashboard.article_group %}disabled{% endif %}>Закрепить на группе</button>
+            </form>
+          </td>
+          <td>
+            <div class="inline-actions">
+              <form method="post" action="{% url 'articles:pin_banner' article.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="unpin">
+                <input type="hidden" name="scope" value="article">
+                <input type="hidden" name="slot" value="{{ row.slot }}">
+                <input type="hidden" name="display_tier" value="{{ row.tier }}">
+                <button class="button small" type="submit" {% if not row.article_pin %}disabled{% endif %}>Снять со статьи</button>
+              </form>
+              <form method="post" action="{% url 'articles:pin_banner' article.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="unpin">
+                <input type="hidden" name="scope" value="group">
+                <input type="hidden" name="slot" value="{{ row.slot }}">
+                <input type="hidden" name="display_tier" value="{{ row.tier }}">
+                <button class="button small" type="submit" {% if not row.group_pin %}disabled{% endif %}>Снять с группы</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">Подходящих слотов пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+  (() => {
+    const typeSelect = document.getElementById('id_article_type');
+    if (!typeSelect) return;
+
+    const fieldsByType = {
+      internal: new Set(['image', 'body']),
+      external: new Set(['external_url']),
+      html: new Set(['html_file']),
+    };
+    const typeFields = new Set(['image', 'body', 'external_url', 'html_file']);
+
+    const syncArticleTypeFields = () => {
+      const visibleFields = fieldsByType[typeSelect.value] || fieldsByType.internal;
+      typeFields.forEach((fieldName) => {
+        const wrapper = document.querySelector(`[data-article-field="${fieldName}"]`);
+        if (!wrapper) return;
+        wrapper.hidden = !visibleFields.has(fieldName);
+      });
+    };
+
+    typeSelect.addEventListener('change', syncArticleTypeFields);
+    syncArticleTypeFields();
+  })();
+</script>
+{% endblock %}

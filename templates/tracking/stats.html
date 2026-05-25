@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <h2>Фильтры статистики</h2>
+      <p class="panel-subtitle">Фильтры применяются к статистике статей, групп статей и баннеров. CSV выгружается по текущему срезу.</p>
+    </div>
+  </div>
+
+  <form class="filters stats-filters" method="get">
+    <label>
+      <span>Дата от</span>
+      <input type="date" name="date_from" value="{{ filters.date_from }}">
+    </label>
+    <label>
+      <span>Дата до</span>
+      <input type="date" name="date_to" value="{{ filters.date_to }}">
+    </label>
+    <label>
+      <span>GEO</span>
+      <input type="text" name="geo" value="{{ filters.geo }}" placeholder="ES">
+    </label>
+    <label>
+      <span>Источник</span>
+      <input type="text" name="source" value="{{ filters.source }}" placeholder="utm_source">
+    </label>
+    <label>
+      <span>Статья</span>
+      <select name="article">
+        <option value="">Все статьи</option>
+        {% for article in filter_articles %}
+          <option value="{{ article.id }}" {% if filters.article_id == article.id|stringformat:"s" %}selected{% endif %}>{{ article.title }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Группа статей</span>
+      <select name="article_group">
+        <option value="">Все группы статей</option>
+        {% for group in filter_article_groups %}
+          <option value="{{ group.id }}" {% if filters.article_group_id == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Вертикаль</span>
+      <select name="vertical">
+        <option value="">Все вертикали</option>
+        {% for vertical in filter_verticals %}
+          <option value="{{ vertical.id }}" {% if filters.vertical_id == vertical.id|stringformat:"s" %}selected{% endif %}>{{ vertical.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Группа баннеров</span>
+      <select name="banner_group">
+        <option value="">Все группы баннеров</option>
+        {% for group in filter_banner_groups %}
+          <option value="{{ group.id }}" {% if filters.banner_group_id == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Баннер</span>
+      <select name="banner">
+        <option value="">Все баннеры</option>
+        {% for banner in filter_banners %}
+          <option value="{{ banner.id }}" {% if filters.banner_id == banner.id|stringformat:"s" %}selected{% endif %}>#{{ banner.id }} {{ banner.headline.text|truncatechars:70 }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Баер</span>
+      <select name="buyer">
+        <option value="">Все баеры</option>
+        {% for buyer in filter_buyers %}
+          <option value="{{ buyer.id }}" {% if filters.buyer_id == buyer.id|stringformat:"s" %}selected{% endif %}>{{ buyer.username }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>Статус баннера</span>
+      <select name="banner_status">
+        <option value="">Все статусы</option>
+        <option value="active" {% if banner_status == "active" %}selected{% endif %}>Активен</option>
+        <option value="paused" {% if banner_status == "paused" %}selected{% endif %}>Пауза</option>
+        <option value="draft" {% if banner_status == "draft" %}selected{% endif %}>Черновик</option>
+        <option value="archived" {% if banner_status == "archived" %}selected{% endif %}>Архив</option>
+      </select>
+    </label>
+    <label>
+      <span>Эшелон</span>
+      <select name="banner_tier">
+        <option value="">Все эшелоны</option>
+        <option value="1" {% if banner_tier == "1" %}selected{% endif %}>Первый эшелон</option>
+        <option value="2" {% if banner_tier == "2" %}selected{% endif %}>Второй эшелон</option>
+      </select>
+    </label>
+    <div class="form-actions wide">
+      <button class="button primary" type="submit">Применить</button>
+      <a class="button" href="{% url 'tracking:stats' %}">Очистить</a>
+      <button class="button" type="submit" name="export" value="articles">CSV статьи</button>
+      <button class="button" type="submit" name="export" value="article_groups">CSV группы статей</button>
+      <button class="button" type="submit" name="export" value="banners">CSV баннеры</button>
+    </div>
+  </form>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Статистика по статьям</h2>
+    <form method="get" class="sort-form">
+      {% for key, value in request.GET.items %}
+        {% if key != "article_sort" and key != "export" %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
+      {% endfor %}
+      <select name="article_sort" onchange="this.form.submit()">
+        <option value="-pageviews" {% if article_sort == "-pageviews" %}selected{% endif %}>Показы ↓</option>
+        <option value="pageviews" {% if article_sort == "pageviews" %}selected{% endif %}>Показы ↑</option>
+        <option value="-outbound_clicks" {% if article_sort == "-outbound_clicks" %}selected{% endif %}>Исходящие клики ↓</option>
+        <option value="-banner_clicks" {% if article_sort == "-banner_clicks" %}selected{% endif %}>Баннерные клики ↓</option>
+        <option value="-avg_scroll" {% if article_sort == "-avg_scroll" %}selected{% endif %}>Скролл ↓</option>
+        <option value="-avg_time" {% if article_sort == "-avg_time" %}selected{% endif %}>Время ↓</option>
+      </select>
+    </form>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Статья</th>
+        <th>GEO</th>
+        <th>Вертикаль</th>
+        <th>Баер</th>
+        <th>Показы</th>
+        <th>Клики</th>
+        <th>Исходящие</th>
+        <th>CTR исх.</th>
+        <th>Баннерные клики</th>
+        <th>CTR банн.</th>
+        <th>События</th>
+        <th>Сессии</th>
+        <th>Скролл</th>
+        <th>Время</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in article_rows %}
+        <tr>
+          <td>{{ row.title }}</td>
+          <td>{{ row.geo }}</td>
+          <td>{{ row.vertical }}</td>
+          <td>{{ row.buyer }}</td>
+          <td>{{ row.pageviews }}</td>
+          <td>{{ row.clicks }}</td>
+          <td>{{ row.outbound_clicks }}</td>
+          <td>{{ row.outbound_ctr }}%</td>
+          <td>{{ row.banner_clicks }}</td>
+          <td>{{ row.banner_ctr }}%</td>
+          <td>{{ row.events }}</td>
+          <td>{{ row.sessions }}</td>
+          <td>{{ row.avg_scroll }}%</td>
+          <td>{{ row.avg_time }} c</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="14" class="empty">Статистики по статьям пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Статистика по группам статей</h2>
+    <form method="get" class="sort-form">
+      {% for key, value in request.GET.items %}
+        {% if key != "article_group_sort" and key != "export" %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
+      {% endfor %}
+      <select name="article_group_sort" onchange="this.form.submit()">
+        <option value="-pageviews" {% if article_group_sort == "-pageviews" %}selected{% endif %}>Показы ↓</option>
+        <option value="name" {% if article_group_sort == "name" %}selected{% endif %}>Название ↑</option>
+        <option value="-outbound_clicks" {% if article_group_sort == "-outbound_clicks" %}selected{% endif %}>Исходящие клики ↓</option>
+        <option value="-banner_clicks" {% if article_group_sort == "-banner_clicks" %}selected{% endif %}>Баннерные клики ↓</option>
+        <option value="-avg_scroll" {% if article_group_sort == "-avg_scroll" %}selected{% endif %}>Скролл ↓</option>
+        <option value="-avg_time" {% if article_group_sort == "-avg_time" %}selected{% endif %}>Время ↓</option>
+      </select>
+    </form>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Группа</th>
+        <th>GEO</th>
+        <th>Вертикаль</th>
+        <th>Статей</th>
+        <th>Показы</th>
+        <th>Клики</th>
+        <th>Исходящие</th>
+        <th>CTR исх.</th>
+        <th>Баннерные клики</th>
+        <th>CTR банн.</th>
+        <th>События</th>
+        <th>Сессии</th>
+        <th>Скролл</th>
+        <th>Время</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in article_group_rows %}
+        <tr>
+          <td>{{ row.name }}</td>
+          <td>{{ row.geo }}</td>
+          <td>{{ row.vertical }}</td>
+          <td>{{ row.articles_count }}</td>
+          <td>{{ row.pageviews }}</td>
+          <td>{{ row.clicks }}</td>
+          <td>{{ row.outbound_clicks }}</td>
+          <td>{{ row.outbound_ctr }}%</td>
+          <td>{{ row.banner_clicks }}</td>
+          <td>{{ row.banner_ctr }}%</td>
+          <td>{{ row.events }}</td>
+          <td>{{ row.sessions }}</td>
+          <td>{{ row.avg_scroll }}%</td>
+          <td>{{ row.avg_time }} c</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="14" class="empty">Статистики по группам статей пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Статистика баннеров</h2>
+    <form method="get" class="sort-form">
+      {% for key, value in request.GET.items %}
+        {% if key != "banner_sort" and key != "export" %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
+      {% endfor %}
+      <select name="banner_sort" onchange="this.form.submit()">
+        <option value="-impressions" {% if banner_sort == "-impressions" %}selected{% endif %}>Показы ↓</option>
+        <option value="impressions" {% if banner_sort == "impressions" %}selected{% endif %}>Показы ↑</option>
+        <option value="-clicks" {% if banner_sort == "-clicks" %}selected{% endif %}>Клики ↓</option>
+        <option value="clicks" {% if banner_sort == "clicks" %}selected{% endif %}>Клики ↑</option>
+        <option value="-ctr" {% if banner_sort == "-ctr" %}selected{% endif %}>CTR ↓</option>
+        <option value="ctr" {% if banner_sort == "ctr" %}selected{% endif %}>CTR ↑</option>
+        <option value="-priority" {% if banner_sort == "-priority" %}selected{% endif %}>Приоритет ↓</option>
+        <option value="display_tier" {% if banner_sort == "display_tier" %}selected{% endif %}>Эшелон ↑</option>
+        <option value="-display_tier" {% if banner_sort == "-display_tier" %}selected{% endif %}>Эшелон ↓</option>
+      </select>
+    </form>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Креатив</th>
+        <th>Заголовок</th>
+        <th>Группа</th>
+        <th>Показы</th>
+        <th>Клики</th>
+        <th>CTR</th>
+        <th>Приоритет</th>
+        <th>Эшелон</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for banner in banner_rows %}
+        <tr>
+          <td>{{ banner.id }}</td>
+          <td><img class="thumb" src="{{ banner.image.image.url }}" alt=""></td>
+          <td>{{ banner.headline.text }}</td>
+          <td>{{ banner.group.name }}</td>
+          <td>{{ banner.impressions }}</td>
+          <td>{{ banner.clicks }}</td>
+          <td>{{ banner.ctr }}%</td>
+          <td>{{ banner.priority }}</td>
+          <td>{{ banner.get_display_tier_display }}</td>
+          <td><span class="status">{{ banner.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10" class="empty">Баннерной статистики пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Группы баннеров</h2>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Группа</th>
+        <th>Баннеры</th>
+        <th>Показы</th>
+        <th>Клики</th>
+        <th>CTR</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in banner_groups %}
+        <tr>
+          <td>{{ group.group__name }}</td>
+          <td>{{ group.banners_count }}</td>
+          <td>{{ group.impressions|default:0 }}</td>
+          <td>{{ group.clicks|default:0 }}</td>
+          <td>{% if group.impressions %}{% widthratio group.clicks group.impressions 100 %}{% else %}0{% endif %}%</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">Групп пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Статистика по потокам</h2>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Поток</th>
+        <th>Переходы</th>
+        <th>Показы страниц</th>
+        <th>Лиды</th>
+        <th>CR, %</th>
+        <th>Выплаты</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.flow_name }}</td>
+          <td>{{ row.clicks }}</td>
+          <td>{{ row.pageviews }}</td>
+          <td>{{ row.leads }}</td>
+          <td>{% if row.clicks %}{% widthratio row.leads row.clicks 100 %}{% else %}0{% endif %}</td>
+          <td>{{ row.payout }} $</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">Данных для статистики по потокам пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

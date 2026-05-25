@@ -1,0 +1,82 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title|default:"Витрина" }} · Ops Vitrina</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'dashboard' %}">
+      <span class="brand-mark">V</span>
+      <span>OPS VITRINA</span>
+    </a>
+    <nav class="nav">
+      <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">#</span>
+        <span>Статистика</span>
+      </a>
+      <a href="{% url 'articles:list' %}" class="nav-link {% if request.resolver_match.app_name == 'articles' %}active{% endif %}">
+        <span class="nav-icon">N</span>
+        <span>Статьи</span>
+      </a>
+      <a href="{% url 'flows:list' %}" class="nav-link {% if request.resolver_match.app_name == 'flows' %}active{% endif %}">
+        <span class="nav-icon">F</span>
+        <span>Потоки</span>
+      </a>
+      <a href="{% url 'banners:list' %}" class="nav-link {% if request.resolver_match.app_name == 'banners' %}active{% endif %}">
+        <span class="nav-icon">B</span>
+        <span>Баннеры</span>
+      </a>
+      <a href="{% url 'tracking:stats' %}" class="nav-link {% if request.resolver_match.url_name == 'stats' %}active{% endif %}">
+        <span class="nav-icon">S</span>
+        <span>Отчеты</span>
+      </a>
+      <a href="{% url 'tracking:tracker_profiles' %}" class="nav-link {% if request.resolver_match.url_name == 'tracker_profiles' or request.resolver_match.url_name == 'tracker_profile_create' or request.resolver_match.url_name == 'tracker_profile_update' %}active{% endif %}">
+        <span class="nav-icon">T</span>
+        <span>Трекеры</span>
+      </a>
+      <a href="/admin/" class="nav-link">
+        <span class="nav-icon">A</span>
+        <span>Админка</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-button" type="button" aria-label="Меню">☰</button>
+        <h1>{{ page_title|default:"Витрина" }}</h1>
+      </div>
+      <div class="topbar-right">
+       
+        <div class="user-badge">
+          <span class="avatar">{{ request.user.username|first|upper }}</span>
+          <span>
+            <strong>{{ request.user.username }}</strong>
+            <small>{{ request.user.get_role_display }}</small>
+          </span>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="icon-button" type="submit" title="Выйти">↪</button>
+        </form>
+      </div>
+    </header>
+
+    <section class="content">
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+</body>
+</html>

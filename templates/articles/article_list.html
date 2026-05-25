@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Статьи</h2>
+    <a class="button primary" href="{% url 'articles:create' %}">Добавить статью</a>
+  </div>
+
+  <form class="filters" method="get">
+    <input type="search" name="q" value="{{ query }}" placeholder="Поиск">
+    <select name="status">
+      <option value="">Все статусы</option>
+      <option value="draft" {% if status == "draft" %}selected{% endif %}>Черновик</option>
+      <option value="active" {% if status == "active" %}selected{% endif %}>Активна</option>
+      <option value="paused" {% if status == "paused" %}selected{% endif %}>Пауза</option>
+      <option value="archived" {% if status == "archived" %}selected{% endif %}>Архив</option>
+    </select>
+    <select name="type">
+      <option value="">Все типы</option>
+      <option value="internal" {% if article_type == "internal" %}selected{% endif %}>Статья на платформе</option>
+      <option value="external" {% if article_type == "external" %}selected{% endif %}>Внешний ленд</option>
+      <option value="html" {% if article_type == "html" %}selected{% endif %}>HTML-файл</option>
+    </select>
+    <select name="vertical">
+      <option value="">Все вертикали</option>
+      {% for vertical in verticals %}
+        <option value="{{ vertical.id }}" {% if vertical_id == vertical.id|stringformat:"s" %}selected{% endif %}>{{ vertical.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="group">
+      <option value="">Все группы</option>
+      {% for group in groups %}
+        <option value="{{ group.id }}" {% if group_id == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="country" value="{{ country }}" placeholder="GEO">
+    <button class="button primary" type="submit">Применить</button>
+    <a class="button" href="{% url 'articles:list' %}">Очистить</a>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Изображение</th>
+        <th>Заголовок</th>
+        <th>Тип</th>
+        <th>Категория</th>
+        <th>Вертикаль</th>
+        <th>Группы</th>
+        <th>Язык</th>
+        <th>Страна</th>
+        <th>Статус</th>
+        <th>Дата</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for article in page_obj %}
+        <tr>
+          <td>{{ article.id }}</td>
+          <td>
+            {% if article.image %}
+              <img class="thumb" src="{{ article.image.url }}" alt="">
+            {% else %}
+              <span class="thumb placeholder"></span>
+            {% endif %}
+          </td>
+          <td><a href="{% url 'articles:update' article.pk %}">{{ article.title }}</a></td>
+          <td>{{ article.get_article_type_display }}</td>
+          <td>{{ article.category|default:"-" }}</td>
+          <td>{{ article.vertical|default:"-" }}</td>
+          <td>
+            {% for group in article.groups.all %}
+              <a class="tag" href="{% url 'articles:group_update' group.pk %}">{{ group.name }}</a>
+            {% empty %}
+              -
+            {% endfor %}
+          </td>
+          <td>{{ article.language|default:"-" }}</td>
+          <td>{{ article.country|default:"-" }}</td>
+          <td><span class="status">{{ article.get_status_display }}</span></td>
+          <td>{{ article.created_at|date:"d.m.y H:i" }}</td>
+          <td>
+            <div class="inline-actions">
+              <a class="button small" href="{% url 'articles:preview' article.pk %}" target="_blank">Посмотреть</a>
+              <form method="post" action="{% url 'articles:create_banner' article.pk %}">
+                {% csrf_token %}
+                <button class="button small" type="submit">Создать баннер</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="12" class="empty">Статей пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

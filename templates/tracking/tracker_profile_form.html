@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel form-panel">
+  <div class="breadcrumbs"><a href="{% url 'tracking:tracker_profiles' %}">Профили трекеров</a> / {{ page_title }}</div>
+  <h2>{{ page_title }}</h2>
+
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label class="{% if field.name == 'endpoint_url' %}wide{% endif %}">
+        <span>{{ field.label }}</span>
+        {{ field }}
+        {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </label>
+    {% endfor %}
+    <div class="form-actions wide">
+      <button class="button primary" type="submit">Сохранить</button>
+      <a class="button" href="{% url 'tracking:tracker_profiles' %}">Отмена</a>
+    </div>
+  </form>
+
+  {% if profile %}
+    <form class="danger-form" method="post" action="{% url 'tracking:tracker_profile_delete' profile.pk %}" onsubmit="return confirm('Удалить профиль трекера «{{ profile.name|escapejs }}»?');">
+      {% csrf_token %}
+      <h3>Удаление профиля</h3>
+      <p>Профиль будет отвязан от статей и групп статей, которые его используют.</p>
+      <button class="button danger" type="submit">Удалить профиль</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

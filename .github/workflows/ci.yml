@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+
+jobs:
+  django:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: opsvitrina_ci
+          POSTGRES_USER: opsvitrina_ci
+          POSTGRES_PASSWORD: opsvitrina_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U opsvitrina_ci -d opsvitrina_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DJANGO_SECRET_KEY: ci-secret-key-for-opsvitrina-django-checks-change-in-real-envs
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      DJANGO_SECURE_SSL_REDIRECT: "1"
+      DJANGO_SECURE_HSTS_SECONDS: "31536000"
+      POSTGRES_DB: opsvitrina_ci
+      POSTGRES_USER: opsvitrina_ci
+      POSTGRES_PASSWORD: opsvitrina_ci
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Django system checks
+        run: python manage.py check --deploy
+
+      - name: Check migrations are committed
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: python manage.py test
+
+      - name: Build Docker image
+        run: docker build -t opsvitrina:ci .

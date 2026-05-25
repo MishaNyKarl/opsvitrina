@@ -1,0 +1,17 @@
+{% if banner %}
+  <a class="banner-unit {{ class_name }}" href="{% url 'banners:click' banner.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" data-banner-id="{{ banner.id }}" data-banner-utm="{{ banner.utm_key }}">
+    <span class="banner-unit-media">
+      <img src="{{ banner.image.image.url }}" alt="">
+    </span>
+    <span class="banner-unit-body">
+      <strong>{{ banner.headline.text }}</strong>
+      {% if show_time %}<span>{{ show_time }}</span>{% endif %}
+    </span>
+  </a>
+{% else %}
+  <article class="ad-slot {{ fallback_class }}" data-slot="{{ slot_name }}">
+    <div class="ad-image-placeholder{% if tall %} tall{% endif %}{% if mini %} mini{% endif %}"></div>
+    <strong>{{ fallback_text }}</strong>
+    {% if show_time %}<span>{{ show_time }}</span>{% endif %}
+  </article>
+{% endif %}

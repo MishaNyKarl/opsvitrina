@@ -1,0 +1,78 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ article.title }}</title>
+  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}">
+</head>
+<body>
+  <header class="news-header">
+    <nav class="news-nav">
+      <a href="#">События</a>
+      <a href="#">Шоу-бизнес</a>
+      <a href="#">Здоровье</a>
+    </nav>
+    <div class="news-logo"><span>Н</span> Новости недели</div>
+    <button class="search-button" type="button" aria-label="Поиск">⌕</button>
+  </header>
+
+  <main>
+    <section class="top-slots" aria-label="Рекламные блоки">
+      {% include "articles/partials/banner_slot.html" with banner=banner_slots.top_left class_name="ad-slot-horizontal" fallback_class="ad-slot-horizontal" slot_name="top-left" fallback_text="Слот верхнего баннера" %}
+      {% include "articles/partials/banner_slot.html" with banner=banner_slots.top_right class_name="ad-slot-horizontal" fallback_class="ad-slot-horizontal" slot_name="top-right" fallback_text="Слот верхнего баннера" %}
+    </section>
+
+    <section class="article-layout">
+      <article class="article-card">
+        {% if article.image %}
+          <figure class="article-hero">
+            <img src="{{ article.image.url }}" alt="">
+            <figcaption>{{ article.title }}</figcaption>
+          </figure>
+        {% else %}
+          <h1 class="article-title">{{ article.title }}</h1>
+        {% endif %}
+
+        <div class="article-body">
+          {{ article.body|safe }}
+        </div>
+
+        {% include "articles/partials/banner_slot.html" with banner=banner_slots.in_article class_name="inline-ad-slot" fallback_class="inline-ad-slot" slot_name="in-article" fallback_text="Слот баннера внутри статьи" %}
+      </article>
+
+      <aside class="sidebar-slots" aria-label="Рекламные блоки справа">
+        {% include "articles/partials/banner_slot.html" with banner=banner_slots.sidebar_1 class_name="side-card" fallback_class="side-card" slot_name="sidebar-1" fallback_text="Слот бокового баннера" tall=True show_time="6 часов назад" %}
+        {% include "articles/partials/banner_slot.html" with banner=banner_slots.sidebar_2 class_name="side-card" fallback_class="side-card" slot_name="sidebar-2" fallback_text="Слот бокового баннера" tall=True show_time="9 часов назад" %}
+        {% include "articles/partials/banner_slot.html" with banner=banner_slots.sidebar_wide class_name="wide-side-card" fallback_class="wide-side-card" slot_name="sidebar-wide" fallback_text="Слот широкого бокового баннера" show_time="4 часа назад" %}
+      </aside>
+    </section>
+  </main>
+
+  {% if banner_slots.popup %}
+    <aside class="popup-slot banner-unit" data-banner-id="{{ banner_slots.popup.id }}" data-banner-utm="{{ banner_slots.popup.utm_key }}">
+      <button type="button" aria-label="Закрыть">×</button>
+      <a class="popup-banner-link" href="{% url 'banners:click' banner_slots.popup.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
+        <span class="banner-unit-media">
+          <img src="{{ banner_slots.popup.image.image.url }}" alt="">
+        </span>
+        <span class="banner-unit-body">
+          <strong>{{ banner_slots.popup.headline.text }}</strong>
+        </span>
+      </a>
+    </aside>
+  {% else %}
+  <aside class="popup-slot ad-slot" data-slot="bottom-popup">
+    <button type="button" aria-label="Закрыть">×</button>
+    <div class="ad-image-placeholder mini"></div>
+    <strong>Слот нижнего pop-up баннера</strong>
+  </aside>
+  {% endif %}
+  {{ tracking_config|json_script:"article-tracking-config" }}
+  <script>
+    window.OPSVITRINA_ARTICLE_TRACKING = JSON.parse(document.getElementById('article-tracking-config').textContent);
+  </script>
+  <script src="{% static 'js/article_tracking.js' %}" defer></script>
+</body>
+</html>

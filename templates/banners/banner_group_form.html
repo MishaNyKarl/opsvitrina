@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel form-panel">
+  <div class="breadcrumbs"><a href="{% url 'banners:list' %}">Баннеры</a> / {{ group.name }}</div>
+  <h2>Редактирование группы</h2>
+
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label class="{% if field.name == 'description' or field.name == 'excluded_slots' or field.name == 'articles' or field.name == 'article_groups' %}wide{% endif %}">
+        <span>{{ field.label }}</span>
+        {{ field }}
+        {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </label>
+    {% endfor %}
+    <div class="form-actions wide">
+      <button class="button primary" type="submit">Сохранить</button>
+      <a class="button" href="{% url 'banners:list' %}">Отмена</a>
+    </div>
+  </form>
+
+  <form class="danger-form" method="post" action="{% url 'banners:group_delete' group.pk %}" onsubmit="return confirm('Удалить группу баннеров вместе с её баннерами? Это действие нельзя отменить.');">
+    {% csrf_token %}
+    <h3>Удаление группы баннеров</h3>
+    <p>Будут удалены группа, загруженные креативы, заголовки, сгенерированные баннеры и ручные закрепления этих баннеров.</p>
+    <button class="button danger" type="submit">Удалить группу баннеров</button>
+  </form>
+</div>
+{% endblock %}

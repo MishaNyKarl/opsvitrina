@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: opsvitrina-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: opsvitrina
+      POSTGRES_USER: opsvitrina
+      POSTGRES_PASSWORD: opsvitrina
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opsvitrina -d opsvitrina"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

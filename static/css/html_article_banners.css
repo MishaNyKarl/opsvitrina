@@ -1,0 +1,117 @@
+.vitrina-banner {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-height: 132px;
+  margin: 18px 0;
+  overflow: hidden;
+  border: 1px solid #e3c2c4;
+  background: #ffe0e1;
+  color: #101010;
+  text-decoration: none;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.vitrina-banner *,
+.vitrina-banner *::before,
+.vitrina-banner *::after {
+  box-sizing: border-box;
+}
+
+.vitrina-banner__media {
+  display: block;
+  width: 160px;
+  height: 132px;
+  overflow: hidden;
+  background: #f1f1f1;
+}
+
+.vitrina-banner__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.vitrina-banner__body {
+  min-width: 0;
+  padding: 18px 24px;
+}
+
+.vitrina-banner__body strong {
+  display: block;
+  color: #101010;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.vitrina-banner--top_left,
+.vitrina-banner--top_right {
+  display: inline-grid;
+  width: min(100%, 720px);
+  min-height: 128px;
+  vertical-align: top;
+}
+
+.vitrina-banner--sidebar_1,
+.vitrina-banner--sidebar_2 {
+  display: block;
+  min-height: 360px;
+  background: #fff;
+}
+
+.vitrina-banner--sidebar_1 .vitrina-banner__media,
+.vitrina-banner--sidebar_2 .vitrina-banner__media {
+  width: 100%;
+  height: 220px;
+}
+
+.vitrina-banner--popup {
+  position: fixed;
+  right: 24px;
+  bottom: 18px;
+  z-index: 2147483000;
+  width: min(720px, calc(100vw - 48px));
+  min-height: 96px;
+  margin: 0;
+  grid-template-columns: 86px minmax(0, 1fr);
+  border-color: #ddd;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+.vitrina-banner--popup .vitrina-banner__media {
+  width: 86px;
+  height: 86px;
+}
+
+.vitrina-banner--popup .vitrina-banner__body strong {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .vitrina-banner {
+    grid-template-columns: 112px minmax(0, 1fr);
+    min-height: 112px;
+  }
+
+  .vitrina-banner__media {
+    width: 112px;
+    height: 112px;
+  }
+
+  .vitrina-banner__body {
+    padding: 14px 16px;
+  }
+
+  .vitrina-banner__body strong {
+    font-size: 18px;
+  }
+}

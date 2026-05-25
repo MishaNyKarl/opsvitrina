@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тестовая HTML-статья для витрины</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f4f5f8;
+      color: #111;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 20px;
+      line-height: 1.45;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      padding: 26px 64px;
+      background: #fff;
+      border-bottom: 6px dotted #d9d9d9;
+      font-weight: 800;
+    }
+
+    .header nav {
+      display: flex;
+      gap: 42px;
+    }
+
+    .brand span {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      margin-right: 8px;
+      border: 3px solid #f44a52;
+      color: #f44a52;
+    }
+
+    .page {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 44px 64px 120px;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 44px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    article,
+    aside {
+      background: #fff;
+    }
+
+    article {
+      padding: 34px;
+    }
+
+    h1 {
+      margin: 0 0 24px;
+      font-size: 42px;
+      line-height: 1.12;
+    }
+
+    .hero {
+      width: 100%;
+      height: 380px;
+      margin: 0 0 26px;
+      object-fit: cover;
+      background: #ddd;
+    }
+
+    aside {
+      display: grid;
+      gap: 22px;
+      padding: 22px;
+    }
+
+    @media (max-width: 900px) {
+      .header,
+      .top-grid,
+      .layout {
+        display: block;
+      }
+
+      .page {
+        padding: 24px 16px 120px;
+      }
+
+      aside {
+        margin-top: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <nav>
+      <span>События</span>
+      <span>Шоу-бизнес</span>
+      <span>Здоровье</span>
+    </nav>
+    <div class="brand"><span>Н</span>Новости недели</div>
+  </header>
+
+  <main class="page">
+    <section class="top-grid">
+      <div data-vitrina-slot="top_left"></div>
+      <div data-vitrina-slot="top_right"></div>
+    </section>
+
+    <section class="layout">
+      <article>
+        <h1>Тестовая HTML-статья с местами под баннеры</h1>
+        <img class="hero" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=80" alt="">
+        <p>Этот файл можно загрузить в тип статьи HTML-файл. Платформа найдёт блоки с атрибутом data-vitrina-slot и вставит туда активные баннеры.</p>
+        <p>Хвост входящей ссылки, например clickid или utm_source, будет проклеиваться в клик по баннеру так же, как в обычной статье.</p>
+
+        <div data-vitrina-slot="in_article"></div>
+
+        <p>После вставки баннера статья продолжает работать как обычный HTML-ленд: скролл, клики и поведенческие события отправляются через общий tracking script.</p>
+        <p>Для второго эшелона откройте эту же статью с параметром ?echelon=2 или ?banner_tier=2.</p>
+      </article>
+
+      <aside>
+        <div data-vitrina-slot="sidebar_1"></div>
+        <div data-vitrina-slot="sidebar_2"></div>
+        <div data-vitrina-slot="sidebar_wide"></div>
+      </aside>
+    </section>
+  </main>
+
+  <div data-vitrina-slot="popup"></div>
+</body>
+</html>

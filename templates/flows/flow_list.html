@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Новостные потоки</h2>
+    <a class="button primary" href="{% url 'flows:create' %}">Добавить поток</a>
+  </div>
+
+  <form class="filters" method="get">
+    <input type="search" name="q" value="{{ query }}" placeholder="Поиск">
+    <select name="status">
+      <option value="">Все статусы</option>
+      <option value="active" {% if status == "active" %}selected{% endif %}>Активный</option>
+      <option value="paused" {% if status == "paused" %}selected{% endif %}>Пауза</option>
+      <option value="archived" {% if status == "archived" %}selected{% endif %}>Архив</option>
+    </select>
+    <button class="button primary" type="submit">Применить</button>
+    <a class="button" href="{% url 'flows:list' %}">Очистить</a>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Название потока</th>
+        <th>Статус</th>
+        <th>Статья</th>
+        <th>Источник</th>
+        <th>Дата</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flow in page_obj %}
+        <tr>
+          <td>{{ flow.id }}</td>
+          <td><a href="{% url 'flows:update' flow.pk %}">{{ flow.name }}</a></td>
+          <td><span class="status green">{{ flow.get_status_display }}</span></td>
+          <td>{{ flow.article.title }}</td>
+          <td>{{ flow.traffic_source|default:"-" }}</td>
+          <td>{{ flow.created_at|date:"d.m.y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">Потоков пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Профили трекеров</h2>
+    <a class="button primary" href="{% url 'tracking:tracker_profile_create' %}">Добавить профиль</a>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Ссылка</th>
+        <th>Clickid вход</th>
+        <th>Clickid отправка</th>
+        <th>События</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for profile in profiles %}
+        <tr>
+          <td><a href="{% url 'tracking:tracker_profile_update' profile.pk %}">{{ profile.name }}</a></td>
+          <td><code>{{ profile.endpoint_url }}</code></td>
+          <td><code>{{ profile.inbound_click_id_param }}</code></td>
+          <td><code>{{ profile.update_click_id_param }}</code></td>
+          <td>
+            {% for key, value in profile.event_params.items %}
+              {% if value %}<span class="tag">{{ key }}: {{ value }}</span>{% endif %}
+            {% endfor %}
+          </td>
+          <td><span class="status">{{ profile.is_active|yesno:"Активен,Выключен" }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">Профилей пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

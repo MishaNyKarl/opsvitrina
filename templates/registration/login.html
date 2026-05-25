@@ -1,0 +1,32 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход · Ops Vitrina</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="auth-page">
+  <main class="auth-panel">
+    <div class="brand auth-brand">
+      <span class="brand-mark">V</span>
+      <span>OPS VITRINA</span>
+    </div>
+    <h1>Вход</h1>
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label>
+        <span>Логин</span>
+        {{ form.username }}
+      </label>
+      <label>
+        <span>Пароль</span>
+        {{ form.password }}
+      </label>
+      <button class="button primary" type="submit">Войти</button>
+    </form>
+  </main>
+</body>
+</html>

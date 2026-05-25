@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="metric-grid">
+  <div class="metric"><span>Статьи</span><strong>{{ article_count }}</strong></div>
+  <div class="metric"><span>Потоки</span><strong>{{ flow_count }}</strong></div>
+  <div class="metric"><span>Клики</span><strong>{{ click_count }}</strong></div>
+  <div class="metric"><span>Просмотры</span><strong>{{ pageview_count }}</strong></div>
+  <div class="metric"><span>Лиды</span><strong>{{ lead_count }}</strong></div>
+  <div class="metric"><span>Выплаты</span><strong>{{ payout_total }} $</strong></div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Последние потоки</h2>
+    <a class="button primary" href="{% url 'flows:create' %}">Добавить поток</a>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Название</th>
+        <th>Статья</th>
+        <th>Баер</th>
+        <th>Дата</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flow in recent_flows %}
+        <tr>
+          <td>{{ flow.id }}</td>
+          <td><a href="{% url 'flows:update' flow.pk %}">{{ flow.name }}</a></td>
+          <td>{{ flow.article.title }}</td>
+          <td>{{ flow.owner.username }}</td>
+          <td>{{ flow.created_at|date:"d.m.y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">Потоков пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

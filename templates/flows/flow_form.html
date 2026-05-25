@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel form-panel">
+  <div class="breadcrumbs"><a href="{% url 'flows:list' %}">Потоки</a> / {{ page_title }}</div>
+  <h2>{{ page_title }}</h2>
+  {% if flow %}
+    <div class="flow-url">Публичный ID: <strong>{{ flow.public_id }}</strong></div>
+  {% endif %}
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label class="{% if field.field.widget.input_type == 'checkbox' %}switch-label{% endif %}">
+        {% if field.field.widget.input_type == 'checkbox' %}
+          {{ field }}
+          <span>{{ field.label }}</span>
+        {% else %}
+          <span>{{ field.label }}</span>
+          {{ field }}
+        {% endif %}
+        {{ field.errors }}
+      </label>
+    {% endfor %}
+    <div class="form-actions wide">
+      <button class="button primary" type="submit">Сохранить</button>
+      <a class="button" href="{% url 'flows:list' %}">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

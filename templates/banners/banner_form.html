@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Редактирование баннера #{{ banner.id }}</h2>
+    <a class="button" href="{% url 'banners:list' %}">Назад к баннерам</a>
+  </div>
+
+  <div class="banner-edit-layout">
+    <div>
+      {% if banner.image.image %}
+        <img class="banner-edit-preview" src="{{ banner.image.image.url }}" alt="">
+      {% endif %}
+      <h3>{{ banner.headline.text }}</h3>
+      <p>{{ banner.group.name }}</p>
+      <dl>
+        <div><dt>Показы</dt><dd>{{ banner.impressions }}</dd></div>
+        <div><dt>Клики</dt><dd>{{ banner.clicks }}</dd></div>
+        <div><dt>CTR</dt><dd>{{ banner.ctr }}%</dd></div>
+      </dl>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="form-actions">
+        <button class="button primary" type="submit">Сохранить</button>
+        <a class="button" href="{% url 'banners:list' %}">Отмена</a>
+      </div>
+    </form>
+
+    <form class="danger-form" method="post" action="{% url 'banners:delete' banner.pk %}" onsubmit="return confirm('Удалить этот баннер? Это действие нельзя отменить.');">
+      {% csrf_token %}
+      <h3>Удаление баннера</h3>
+      <p>Баннер исчезнет из ротации, статистики по нему в списке баннеров и всех ручных закреплений.</p>
+      <button class="button danger" type="submit">Удалить баннер</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

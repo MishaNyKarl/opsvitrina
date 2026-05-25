@@ -1,0 +1,10 @@
+{% if banner %}
+  <a class="vitrina-banner vitrina-banner--{{ slot_name }}" href="{% url 'banners:click' banner.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" data-banner-id="{{ banner.id }}" data-banner-utm="{{ banner.utm_key }}" data-vitrina-rendered-slot="{{ slot_name }}">
+    <span class="vitrina-banner__media">
+      <img src="{{ banner.image.image.url }}" alt="">
+    </span>
+    <span class="vitrina-banner__body">
+      <strong>{{ banner.headline.text }}</strong>
+    </span>
+  </a>
+{% endif %}
