@@ -101,6 +101,22 @@ caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
+If Caddy fails with `listening on :80: bind: address already in use`, find the process that already uses ports 80 or 443:
+
+```bash
+ss -ltnp | grep -E ':80|:443'
+systemctl status nginx apache2 caddy --no-pager
+```
+
+Usually this means nginx or apache is already running. Stop and disable the conflicting service if Caddy will be the public reverse proxy:
+
+```bash
+systemctl stop nginx apache2 2>/dev/null || true
+systemctl disable nginx apache2 2>/dev/null || true
+systemctl restart caddy
+systemctl status caddy --no-pager
+```
+
 ## GitHub access from the server
 
 If the repository is private, create a read-only deploy key on the server:
