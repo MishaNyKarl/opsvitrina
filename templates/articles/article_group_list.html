@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Группы статей</h2>
+    <div class="inline-actions">
+      <a class="button" href="{% url 'articles:list' %}">Статьи</a>
+      <a class="button primary" href="{% url 'articles:create' %}">Добавить статью</a>
+    </div>
+  </div>
+
+  <form class="filters group-filters" method="get">
+    <input type="search" name="q" value="{{ query }}" placeholder="Поиск группы">
+    <select name="vertical">
+      <option value="">Все вертикали</option>
+      {% for vertical in verticals %}
+        <option value="{{ vertical.id }}" {% if vertical_id == vertical.id|stringformat:"s" %}selected{% endif %}>{{ vertical.name }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="geo" value="{{ geo }}" placeholder="GEO">
+    <button class="button primary" type="submit">Применить</button>
+    <a class="button" href="{% url 'articles:group_list' %}">Очистить</a>
+  </form>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Название</th>
+        <th>GEO</th>
+        <th>Вертикаль</th>
+        <th>Статей</th>
+        <th>Публичная ссылка</th>
+        <th>Дата</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in page_obj %}
+        <tr>
+          <td>{{ group.id }}</td>
+          <td><a href="{% url 'articles:group_update' group.pk %}">{{ group.name }}</a></td>
+          <td>{{ group.geo|default:"-" }}</td>
+          <td>{{ group.vertical|default:"-" }}</td>
+          <td>{{ group.article_count }}</td>
+          <td><code>{{ group.get_public_url }}</code></td>
+          <td>{{ group.created_at|date:"d.m.y H:i" }}</td>
+          <td><a class="button small" href="{% url 'articles:group_update' group.pk %}">Редактировать</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">Групп пока нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

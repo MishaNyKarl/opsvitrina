@@ -281,6 +281,10 @@ a {
   grid-template-columns: repeat(4, minmax(180px, 1fr));
 }
 
+.group-filters {
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px) minmax(120px, 160px) auto auto;
+}
+
 input,
 select,
 textarea {
@@ -558,6 +562,35 @@ a.tag:hover {
   max-width: 420px;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(17, 27, 45, 0.48);
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal-panel {
+  width: min(620px, 100%);
+  padding: 24px;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(17, 27, 45, 0.26);
+}
+
+.modal-field {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  font-weight: 800;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(260px, 1fr));
@@ -720,6 +753,7 @@ a.tag:hover {
 
   .topbar-right,
   .filters,
+  .group-filters,
   .form-grid,
   .copy-row,
   .inline-control-form,

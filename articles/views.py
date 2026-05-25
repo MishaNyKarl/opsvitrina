@@ -424,6 +424,70 @@ def article_list(request):
 
 
 @login_required
+def article_group_list(request):
+    groups = ArticleGroup.objects.visible_for(request.user).select_related('vertical', 'owner', 'team').prefetch_related('articles')
+
+    query = request.GET.get('q', '').strip()
+    geo = request.GET.get('geo', '').strip()
+    vertical_id = request.GET.get('vertical', '').strip()
+
+    if query:
+        groups = groups.filter(models.Q(name__icontains=query) | models.Q(description__icontains=query))
+    if geo:
+        groups = groups.filter(geo__iexact=geo)
+    if vertical_id:
+        groups = groups.filter(vertical_id=vertical_id)
+
+    groups = groups.annotate(article_count=models.Count('articles', distinct=True))
+    paginator = Paginator(groups, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'articles/article_group_list.html', {
+        'page_title': 'Группы статей',
+        'page_obj': page_obj,
+        'query': query,
+        'geo': geo,
+        'vertical_id': vertical_id,
+        'verticals': Vertical.objects.all(),
+    })
+
+
+@login_required
+@require_POST
+def article_bulk_action(request):
+    action = request.POST.get('action')
+    article_ids = request.POST.getlist('article_ids')
+    articles = Article.objects.visible_for(request.user).filter(id__in=article_ids)
+
+    if not article_ids:
+        messages.error(request, 'Выберите хотя бы одну статью.')
+        return redirect('articles:list')
+
+    if action == 'add_to_group':
+        group_id = request.POST.get('group')
+        group = get_object_or_404(ArticleGroup.objects.visible_for(request.user), pk=group_id)
+        updated_count = 0
+        with transaction.atomic():
+            for article in articles:
+                article.groups.add(group)
+                ArticleGroupMembership.objects.get_or_create(
+                    group=group,
+                    article=article,
+                    defaults={
+                        'priority': 50,
+                        'utm_query': '',
+                        'is_active': True,
+                    },
+                )
+                updated_count += 1
+        messages.success(request, f'Статей добавлено в группу “{group.name}”: {updated_count}.')
+        return redirect('articles:list')
+
+    messages.error(request, 'Неизвестное массовое действие.')
+    return redirect('articles:list')
+
+
+@login_required
 def article_create(request):
     if request.method == 'POST':
         form = ArticleForm(request.POST, request.FILES, user=request.user)

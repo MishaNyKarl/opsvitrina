@@ -4,8 +4,16 @@
 <div class="panel">
   <div class="panel-header">
     <h2>Статьи</h2>
-    <a class="button primary" href="{% url 'articles:create' %}">Добавить статью</a>
+    <div class="inline-actions">
+      <button class="button" type="button" data-open-bulk-modal>Массовые действия</button>
+      <a class="button" href="{% url 'articles:group_list' %}">Группы статей</a>
+      <a class="button primary" href="{% url 'articles:create' %}">Добавить статью</a>
+    </div>
   </div>
+
+  <form id="bulkActionForm" method="post" action="{% url 'articles:bulk_action' %}">
+    {% csrf_token %}
+  </form>
 
   <form class="filters" method="get">
     <input type="search" name="q" value="{{ query }}" placeholder="Поиск">
@@ -42,6 +50,7 @@
   <table class="data-table">
     <thead>
       <tr>
+        <th><input type="checkbox" data-select-all-articles aria-label="Выбрать все статьи"></th>
         <th>ID</th>
         <th>Изображение</th>
         <th>Заголовок</th>
@@ -59,6 +68,7 @@
     <tbody>
       {% for article in page_obj %}
         <tr>
+          <td><input form="bulkActionForm" type="checkbox" name="article_ids" value="{{ article.id }}" data-article-checkbox aria-label="Выбрать статью {{ article.id }}"></td>
           <td>{{ article.id }}</td>
           <td>
             {% if article.image %}
@@ -93,9 +103,75 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="12" class="empty">Статей пока нет</td></tr>
+        <tr><td colspan="13" class="empty">Статей пока нет</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+<div class="modal-backdrop" data-bulk-modal hidden>
+  <div class="modal-panel">
+    <div class="panel-header">
+      <h2>Массовые действия</h2>
+      <button class="icon-button" type="button" data-close-bulk-modal aria-label="Закрыть">×</button>
+    </div>
+    <p class="panel-subtitle">Выбранные статьи будут добавлены в группу. Уже существующие группы у статей сохранятся.</p>
+    <label class="modal-field">
+      <span>Действие</span>
+      <select form="bulkActionForm" name="action">
+        <option value="add_to_group">Добавить в группу</option>
+      </select>
+    </label>
+    <label class="modal-field">
+      <span>Группа</span>
+      <select form="bulkActionForm" name="group" required>
+        <option value="">Выберите группу</option>
+        {% for group in groups %}
+          <option value="{{ group.id }}">{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="form-actions">
+      <button class="button primary" form="bulkActionForm" type="submit">Применить</button>
+      <button class="button" type="button" data-close-bulk-modal>Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const modal = document.querySelector('[data-bulk-modal]');
+    const openButton = document.querySelector('[data-open-bulk-modal]');
+    const closeButtons = document.querySelectorAll('[data-close-bulk-modal]');
+    const selectAll = document.querySelector('[data-select-all-articles]');
+    const checkboxes = Array.from(document.querySelectorAll('[data-article-checkbox]'));
+
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        checkboxes.forEach((checkbox) => {
+          checkbox.checked = selectAll.checked;
+        });
+      });
+    }
+
+    if (openButton && modal) {
+      openButton.addEventListener('click', () => {
+        modal.hidden = false;
+      });
+    }
+
+    closeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        modal.hidden = true;
+      });
+    });
+
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          modal.hidden = true;
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}

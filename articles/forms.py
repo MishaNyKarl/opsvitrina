@@ -6,12 +6,12 @@ from .models import Article, ArticleGroup, ArticleGroupMembership, ArticleStatus
 
 
 class ArticleForm(forms.ModelForm):
-    article_group = forms.ModelChoiceField(
-        label='Группа статей',
+    article_groups = forms.ModelMultipleChoiceField(
+        label='Группы статей',
         required=False,
         queryset=ArticleGroup.objects.none(),
-        empty_label='Без группы',
-        help_text='Группа нужна для общих правил показа баннеров и статистики по нескольким статьям.',
+        widget=forms.CheckboxSelectMultiple,
+        help_text='Статья может входить в несколько групп. Группы нужны для общих ссылок, ротации и правил показа.',
     )
     new_article_group = forms.CharField(
         label='Создать новую группу статей',
@@ -27,7 +27,7 @@ class ArticleForm(forms.ModelForm):
             'article_type',
             'category',
             'vertical',
-            'article_group',
+            'article_groups',
             'new_article_group',
             'tags',
             'country',
@@ -49,10 +49,10 @@ class ArticleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['status'].initial = ArticleStatus.ACTIVE
         if user is not None:
-            self.fields['article_group'].queryset = ArticleGroup.objects.visible_for(user)
+            self.fields['article_groups'].queryset = ArticleGroup.objects.visible_for(user)
             self.fields['tracker_profile'].queryset = TrackerProfile.objects.visible_for(user).filter(is_active=True)
         if self.instance and self.instance.pk:
-            self.fields['article_group'].initial = self.instance.groups.first()
+            self.fields['article_groups'].initial = self.instance.groups.all()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -60,11 +60,11 @@ class ArticleForm(forms.ModelForm):
         body = cleaned_data.get('body')
         external_url = cleaned_data.get('external_url')
         html_file = cleaned_data.get('html_file')
-        article_group = cleaned_data.get('article_group')
+        article_groups = cleaned_data.get('article_groups')
         new_article_group = (cleaned_data.get('new_article_group') or '').strip()
 
-        if article_group and new_article_group:
-            self.add_error('new_article_group', 'Выберите существующую группу или создайте новую, не оба варианта сразу.')
+        if article_groups and new_article_group:
+            self.add_error('new_article_group', 'Выберите существующие группы или создайте новую, не оба варианта сразу.')
         if article_type == ArticleType.INTERNAL and not body:
             self.add_error('body', 'Для статьи на платформе нужно заполнить текст.')
         if article_type == ArticleType.EXTERNAL and not external_url:
@@ -86,33 +86,34 @@ class ArticleForm(forms.ModelForm):
 
     def save_article_group(self, article, user):
         new_group_name = (self.cleaned_data.get('new_article_group') or '').strip()
-        selected_group = self.cleaned_data.get('article_group')
+        selected_groups = list(self.cleaned_data.get('article_groups') or [])
 
         if new_group_name:
-            selected_group = ArticleGroup.objects.create(
+            selected_groups = [ArticleGroup.objects.create(
                 owner=user,
                 team=user.team,
                 name=new_group_name,
                 geo=article.country,
                 vertical=article.vertical,
-            )
+            )]
 
-        article.groups.clear()
-        if selected_group:
-            article.groups.add(selected_group)
-            ArticleGroupMembership.objects.get_or_create(
-                group=selected_group,
-                article=article,
-                defaults={
-                    'priority': 50,
-                    'utm_query': '',
-                    'is_active': True,
-                },
-            )
-            ArticleGroupMembership.objects.filter(article=article).exclude(group=selected_group).delete()
+        article.groups.set(selected_groups)
+        if selected_groups:
+            selected_group_ids = [group.id for group in selected_groups]
+            for selected_group in selected_groups:
+                ArticleGroupMembership.objects.get_or_create(
+                    group=selected_group,
+                    article=article,
+                    defaults={
+                        'priority': 50,
+                        'utm_query': '',
+                        'is_active': True,
+                    },
+                )
+            ArticleGroupMembership.objects.filter(article=article).exclude(group_id__in=selected_group_ids).delete()
         else:
             ArticleGroupMembership.objects.filter(article=article).delete()
-        return selected_group
+        return selected_groups
 
 
 class ArticleGroupForm(forms.ModelForm):
