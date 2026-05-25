@@ -24,8 +24,9 @@
               <form method="post" action="{% url 'banners:group_toggle_status' group.pk %}" class="toggle-form">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button class="switch-button {% if group.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить группу баннеров">
-                  <span></span>
+                <button class="switch-button {% if group.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить группу баннеров" title="{% if group.status == 'active' %}Группа включена{% else %}Группа выключена{% endif %}">
+                  <span class="switch-knob" aria-hidden="true"></span>
+                  <span class="switch-text">{% if group.status == 'active' %}Вкл{% else %}Выкл{% endif %}</span>
                 </button>
               </form>
             </dd>
@@ -95,8 +96,9 @@
             <form method="post" action="{% url 'banners:toggle_status' banner.pk %}" class="toggle-form">
               {% csrf_token %}
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button class="switch-button {% if banner.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить баннер">
-                <span></span>
+              <button class="switch-button {% if banner.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить баннер" title="{% if banner.status == 'active' %}Баннер включен{% else %}Баннер выключен{% endif %}">
+                <span class="switch-knob" aria-hidden="true"></span>
+                <span class="switch-text">{% if banner.status == 'active' %}Вкл{% else %}Выкл{% endif %}</span>
               </button>
             </form>
           </td>

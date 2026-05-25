@@ -58,8 +58,9 @@
             <form method="post" action="{% url 'articles:group_toggle_status' group.pk %}" class="toggle-form">
               {% csrf_token %}
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button class="switch-button {% if group.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить группу статей">
-                <span></span>
+              <button class="switch-button {% if group.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить группу статей" title="{% if group.status == 'active' %}Группа включена{% else %}Группа выключена{% endif %}">
+                <span class="switch-knob" aria-hidden="true"></span>
+                <span class="switch-text">{% if group.status == 'active' %}Вкл{% else %}Выкл{% endif %}</span>
               </button>
             </form>
           </td>

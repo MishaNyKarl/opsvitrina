@@ -95,8 +95,9 @@
             <form method="post" action="{% url 'articles:toggle_status' article.pk %}" class="toggle-form">
               {% csrf_token %}
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button class="switch-button {% if article.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить статью">
-                <span></span>
+              <button class="switch-button {% if article.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить статью" title="{% if article.status == 'active' %}Статья включена{% else %}Статья выключена{% endif %}">
+                <span class="switch-knob" aria-hidden="true"></span>
+                <span class="switch-text">{% if article.status == 'active' %}Вкл{% else %}Выкл{% endif %}</span>
               </button>
             </form>
           </td>
