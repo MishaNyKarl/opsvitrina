@@ -18,7 +18,7 @@
   <form class="filters" method="get">
     <input type="search" name="q" value="{{ query }}" placeholder="Поиск">
     <select name="status">
-      <option value="">Все статусы</option>
+        <option value="">Все статусы</option>
       <option value="draft" {% if status == "draft" %}selected{% endif %}>Черновик</option>
       <option value="active" {% if status == "active" %}selected{% endif %}>Активна</option>
       <option value="paused" {% if status == "paused" %}selected{% endif %}>Пауза</option>
@@ -60,8 +60,8 @@
         <th>Группы</th>
         <th>Язык</th>
         <th>Страна</th>
-        <th>Статус</th>
         <th>Дата</th>
+        <th>Вкл.</th>
         <th></th>
       </tr>
     </thead>
@@ -90,8 +90,16 @@
           </td>
           <td>{{ article.language|default:"-" }}</td>
           <td>{{ article.country|default:"-" }}</td>
-          <td><span class="status">{{ article.get_status_display }}</span></td>
           <td>{{ article.created_at|date:"d.m.y H:i" }}</td>
+          <td>
+            <form method="post" action="{% url 'articles:toggle_status' article.pk %}" class="toggle-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="switch-button {% if article.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить статью">
+                <span></span>
+              </button>
+            </form>
+          </td>
           <td>
             <div class="inline-actions">
               <a class="button small" href="{% url 'articles:preview' article.pk %}" target="_blank">Посмотреть</a>
@@ -117,13 +125,15 @@
     <p class="panel-subtitle">Выбранные статьи будут добавлены в группу. Уже существующие группы у статей сохранятся.</p>
     <label class="modal-field">
       <span>Действие</span>
-      <select form="bulkActionForm" name="action">
+      <select form="bulkActionForm" name="action" data-bulk-action>
         <option value="add_to_group">Добавить в группу</option>
+        <option value="activate">Включить выбранные статьи</option>
+        <option value="deactivate">Выключить выбранные статьи</option>
       </select>
     </label>
     <label class="modal-field">
       <span>Группа</span>
-      <select form="bulkActionForm" name="group" required>
+      <select form="bulkActionForm" name="group" data-bulk-group required>
         <option value="">Выберите группу</option>
         {% for group in groups %}
           <option value="{{ group.id }}">{{ group.name }}</option>
@@ -144,6 +154,15 @@
     const closeButtons = document.querySelectorAll('[data-close-bulk-modal]');
     const selectAll = document.querySelector('[data-select-all-articles]');
     const checkboxes = Array.from(document.querySelectorAll('[data-article-checkbox]'));
+    const bulkAction = document.querySelector('[data-bulk-action]');
+    const bulkGroup = document.querySelector('[data-bulk-group]');
+
+    const syncBulkGroupRequirement = () => {
+      if (!bulkAction || !bulkGroup) return;
+      const needsGroup = bulkAction.value === 'add_to_group';
+      bulkGroup.required = needsGroup;
+      bulkGroup.closest('.modal-field').hidden = !needsGroup;
+    };
 
     if (selectAll) {
       selectAll.addEventListener('change', () => {
@@ -155,8 +174,14 @@
 
     if (openButton && modal) {
       openButton.addEventListener('click', () => {
+        syncBulkGroupRequirement();
         modal.hidden = false;
       });
+    }
+
+    if (bulkAction) {
+      bulkAction.addEventListener('change', syncBulkGroupRequirement);
+      syncBulkGroupRequirement();
     }
 
     closeButtons.forEach((button) => {

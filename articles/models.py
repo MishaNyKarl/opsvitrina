@@ -85,6 +85,12 @@ class ArticleGroup(OwnedModel):
         blank=True,
         related_name='article_groups',
     )
+    status = models.CharField(
+        'Статус',
+        max_length=24,
+        choices=ArticleStatus.choices,
+        default=ArticleStatus.ACTIVE,
+    )
 
     class Meta:
         verbose_name = 'Группа статей'
@@ -93,6 +99,7 @@ class ArticleGroup(OwnedModel):
         indexes = [
             models.Index(fields=['owner', 'created_at']),
             models.Index(fields=['geo', 'vertical']),
+            models.Index(fields=['status', 'created_at']),
         ]
 
     def save(self, *args, **kwargs):

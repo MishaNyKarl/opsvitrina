@@ -18,6 +18,18 @@
           <div><dt>Исключения</dt><dd>{% if group.excluded_slots %}{{ group.excluded_slots|length }}{% else %}0{% endif %}</dd></div>
           <div><dt>Ссылка</dt><dd>{% if group.target_url %}есть{% else %}-{% endif %}</dd></div>
           <div><dt>UTM-параметр</dt><dd>{{ group.banner_utm_param }}</dd></div>
+          <div>
+            <dt>Вкл.</dt>
+            <dd>
+              <form method="post" action="{% url 'banners:group_toggle_status' group.pk %}" class="toggle-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="switch-button {% if group.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить группу баннеров">
+                  <span></span>
+                </button>
+              </form>
+            </dd>
+          </div>
         </dl>
       </article>
     {% empty %}
@@ -55,7 +67,7 @@
         <th>Показы</th>
         <th>Клики</th>
         <th>CTR</th>
-        <th>Статус</th>
+        <th>Вкл.</th>
       </tr>
     </thead>
     <tbody>
@@ -79,7 +91,15 @@
           <td>{{ banner.impressions }}</td>
           <td>{{ banner.clicks }}</td>
           <td>{{ banner.ctr }}%</td>
-          <td><span class="status green">{{ banner.get_status_display }}</span></td>
+          <td>
+            <form method="post" action="{% url 'banners:toggle_status' banner.pk %}" class="toggle-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="switch-button {% if banner.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить баннер">
+                <span></span>
+              </button>
+            </form>
+          </td>
         </tr>
       {% empty %}
         <tr><td colspan="13" class="empty">Баннеров пока нет</td></tr>

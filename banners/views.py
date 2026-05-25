@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from .forms import BannerFilterForm, BannerForm, BannerGroupForm, BannerUploadForm
-from .models import Banner, BannerGroup, BannerPlacement, CreativeHeadline, CreativeImage
+from .models import Banner, BannerGroup, BannerPlacement, BannerStatus, CreativeHeadline, CreativeImage
 
 
 BANNER_URL_PLACEHOLDER_PATTERN = re.compile(r'\{([a-zA-Z_][\w.-]*)\}')
@@ -228,6 +228,15 @@ def banner_group_delete(request, pk):
 
 
 @login_required
+@require_POST
+def banner_group_toggle_status(request, pk):
+    group = get_object_or_404(BannerGroup.objects.visible_for(request.user), pk=pk)
+    group.status = BannerStatus.DRAFT if group.status == BannerStatus.ACTIVE else BannerStatus.ACTIVE
+    group.save(update_fields=['status', 'updated_at'])
+    return redirect(request.POST.get('next') or 'banners:list')
+
+
+@login_required
 def banner_update(request, pk):
     banner = get_object_or_404(
         Banner.objects.visible_for(request.user).select_related('group', 'image', 'headline'),
@@ -259,6 +268,15 @@ def banner_delete(request, pk):
         banner.delete()
     messages.success(request, f'Баннер #{banner_id} удалён.')
     return redirect('banners:list')
+
+
+@login_required
+@require_POST
+def banner_toggle_status(request, pk):
+    banner = get_object_or_404(Banner.objects.visible_for(request.user), pk=pk)
+    banner.status = BannerStatus.DRAFT if banner.status == BannerStatus.ACTIVE else BannerStatus.ACTIVE
+    banner.save(update_fields=['status', 'updated_at'])
+    return redirect(request.POST.get('next') or 'banners:list')
 
 
 def banner_click(request, pk):

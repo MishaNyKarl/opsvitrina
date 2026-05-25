@@ -125,6 +125,7 @@ class ArticleGroupForm(forms.ModelForm):
             'vertical',
             'description',
             'tracker_profile',
+            'status',
         )
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),

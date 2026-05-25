@@ -18,6 +18,13 @@
         <option value="{{ vertical.id }}" {% if vertical_id == vertical.id|stringformat:"s" %}selected{% endif %}>{{ vertical.name }}</option>
       {% endfor %}
     </select>
+    <select name="status">
+      <option value="">Все статусы</option>
+      <option value="active" {% if status == "active" %}selected{% endif %}>Активна</option>
+      <option value="draft" {% if status == "draft" %}selected{% endif %}>Черновик</option>
+      <option value="paused" {% if status == "paused" %}selected{% endif %}>Пауза</option>
+      <option value="archived" {% if status == "archived" %}selected{% endif %}>Архив</option>
+    </select>
     <input type="text" name="geo" value="{{ geo }}" placeholder="GEO">
     <button class="button primary" type="submit">Применить</button>
     <a class="button" href="{% url 'articles:group_list' %}">Очистить</a>
@@ -33,6 +40,7 @@
         <th>Статей</th>
         <th>Публичная ссылка</th>
         <th>Дата</th>
+        <th>Вкл.</th>
         <th></th>
       </tr>
     </thead>
@@ -46,10 +54,19 @@
           <td>{{ group.article_count }}</td>
           <td><code>{{ group.get_public_url }}</code></td>
           <td>{{ group.created_at|date:"d.m.y H:i" }}</td>
+          <td>
+            <form method="post" action="{% url 'articles:group_toggle_status' group.pk %}" class="toggle-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="switch-button {% if group.status == 'active' %}is-on{% endif %}" type="submit" aria-label="Переключить группу статей">
+                <span></span>
+              </button>
+            </form>
+          </td>
           <td><a class="button small" href="{% url 'articles:group_update' group.pk %}">Редактировать</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="8" class="empty">Групп пока нет</td></tr>
+        <tr><td colspan="9" class="empty">Групп пока нет</td></tr>
       {% endfor %}
     </tbody>
   </table>

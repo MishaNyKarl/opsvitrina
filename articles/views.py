@@ -430,6 +430,7 @@ def article_group_list(request):
     query = request.GET.get('q', '').strip()
     geo = request.GET.get('geo', '').strip()
     vertical_id = request.GET.get('vertical', '').strip()
+    status = request.GET.get('status', '').strip()
 
     if query:
         groups = groups.filter(models.Q(name__icontains=query) | models.Q(description__icontains=query))
@@ -437,6 +438,8 @@ def article_group_list(request):
         groups = groups.filter(geo__iexact=geo)
     if vertical_id:
         groups = groups.filter(vertical_id=vertical_id)
+    if status:
+        groups = groups.filter(status=status)
 
     groups = groups.annotate(article_count=models.Count('articles', distinct=True))
     paginator = Paginator(groups, 25)
@@ -448,6 +451,7 @@ def article_group_list(request):
         'query': query,
         'geo': geo,
         'vertical_id': vertical_id,
+        'status': status,
         'verticals': Vertical.objects.all(),
     })
 
@@ -482,9 +486,33 @@ def article_bulk_action(request):
                 updated_count += 1
         messages.success(request, f'Статей добавлено в группу “{group.name}”: {updated_count}.')
         return redirect('articles:list')
+    if action in {'activate', 'deactivate'}:
+        new_status = ArticleStatus.ACTIVE if action == 'activate' else ArticleStatus.DRAFT
+        updated_count = articles.update(status=new_status)
+        action_label = 'включено' if action == 'activate' else 'выключено'
+        messages.success(request, f'Статей {action_label}: {updated_count}.')
+        return redirect('articles:list')
 
     messages.error(request, 'Неизвестное массовое действие.')
     return redirect('articles:list')
+
+
+@login_required
+@require_POST
+def article_toggle_status(request, pk):
+    article = get_object_or_404(Article.objects.visible_for(request.user), pk=pk)
+    article.status = ArticleStatus.DRAFT if article.status == ArticleStatus.ACTIVE else ArticleStatus.ACTIVE
+    article.save(update_fields=['status', 'updated_at'])
+    return redirect(request.POST.get('next') or 'articles:list')
+
+
+@login_required
+@require_POST
+def article_group_toggle_status(request, pk):
+    group = get_object_or_404(ArticleGroup.objects.visible_for(request.user), pk=pk)
+    group.status = ArticleStatus.DRAFT if group.status == ArticleStatus.ACTIVE else ArticleStatus.ACTIVE
+    group.save(update_fields=['status', 'updated_at'])
+    return redirect(request.POST.get('next') or 'articles:group_list')
 
 
 @login_required
@@ -735,7 +763,7 @@ def public_article(request, public_id):
 
 
 def public_article_group(request, public_id):
-    group = get_object_or_404(ArticleGroup, public_id=public_id)
+    group = get_object_or_404(ArticleGroup, public_id=public_id, status=ArticleStatus.ACTIVE)
     membership = _select_group_membership(group)
     target_url = _append_query_string(
         membership.article.get_public_url(),
