@@ -1,4 +1,3 @@
-import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -11,23 +10,15 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from .forms import BannerFilterForm, BannerForm, BannerGroupForm, BannerUploadForm
 from .models import Banner, BannerGroup, BannerPlacement, BannerStatus, CreativeHeadline, CreativeImage
+from core.tracking_urls import PLACEHOLDER_PATTERN, append_query_string as append_tracking_query_string, tracking_query_string
 
 
-BANNER_URL_PLACEHOLDER_PATTERN = re.compile(r'\{([a-zA-Z_][\w.-]*)\}')
+BANNER_URL_PLACEHOLDER_PATTERN = PLACEHOLDER_PATTERN
 
 
 def _banner_utm_key(group, image, headline, index):
     base = slugify(f'{group.id}-{image.id}-{headline.id}') or f'banner-{group.id}-{index}'
     return f'bn_{base}_{index}'
-
-
-def _append_query_string(url, query_string):
-    if not query_string:
-        return url
-    parts = urlsplit(url)
-    query_items = parse_qsl(parts.query, keep_blank_values=True)
-    query_items.extend(parse_qsl(query_string, keep_blank_values=True))
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query_items), parts.fragment))
 
 
 def _banner_utm_param(banner):
@@ -53,6 +44,13 @@ def _first_value(params, *names):
     return ''
 
 
+def _usable_value(params, *names):
+    value = _first_value(params, *names)
+    if BANNER_URL_PLACEHOLDER_PATTERN.search(value):
+        return ''
+    return value
+
+
 def _banner_url_values(banner, query_string):
     params = dict(parse_qsl(query_string or '', keep_blank_values=True))
     values = dict(params)
@@ -63,6 +61,9 @@ def _banner_url_values(banner, query_string):
         'clickid': click_id,
         'phx_click_id': _first_value(params, 'phx_click_id') or click_id,
         'subid': _first_value(params, 'subid') or click_id,
+        'article_id': _usable_value(params, 'article_id'),
+        'article_public_id': _usable_value(params, 'article_public_id', 'article_uuid'),
+        'article_uuid': _usable_value(params, 'article_uuid', 'article_public_id'),
         'ad_vtr_name': banner.utm_key,
         'banner_utm': banner.utm_key,
         'banner_id': str(banner.id),
@@ -80,22 +81,26 @@ def _render_banner_url_template(url, banner, query_string):
     return BANNER_URL_PLACEHOLDER_PATTERN.sub(replace_placeholder, url)
 
 
-def _append_raw_query_param(url, key, value):
-    parts = urlsplit(url)
-    if any(param_key == key for param_key, _value in parse_qsl(parts.query, keep_blank_values=True)):
-        return url
-    separator = '&' if parts.query else '?'
-    fragment = f'#{parts.fragment}' if parts.fragment else ''
-    base = urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, ''))
-    return f'{base}{separator}{key}={value}{fragment}'
+def _resolved_banner_query_string(banner, query_string):
+    values = _banner_url_values(banner, query_string)
+    banner_utm_param = _banner_utm_param(banner)
+    return tracking_query_string(
+        query_string,
+        values,
+        force_values={
+            'ad_vtr_name': banner.utm_key,
+            'banner_utm': banner.utm_key,
+            'banner_id': banner.id,
+            banner_utm_param: banner.utm_key,
+        },
+    )
 
 
 def _build_banner_target_url(target_url, banner, query_string):
-    banner_utm_param = _banner_utm_param(banner)
+    resolved_query_string = _resolved_banner_query_string(banner, query_string)
     if BANNER_URL_PLACEHOLDER_PATTERN.search(target_url):
         target_url = _render_banner_url_template(target_url, banner, query_string)
-        return _append_raw_query_param(target_url, banner_utm_param, banner.utm_key)
-    target_url = _append_query_string(target_url, query_string)
+    target_url = append_tracking_query_string(target_url, resolved_query_string, skip_existing=True)
     return _append_banner_mark(target_url, banner)
 
 

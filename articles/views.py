@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 from .forms import ArticleForm, ArticleGroupForm
 from .models import Article, ArticleGroup, ArticleGroupMembership, ArticleStatus, ArticleType, Vertical
 from banners.models import Banner, BannerGroup, BannerPlacement, BannerSlot, BannerStatus, BannerTier, CreativeHeadline, CreativeImage
+from core.tracking_urls import tracking_query_string
 from tracking.models import ArticleBehaviorEvent, VisitEvent
 
 
@@ -72,6 +73,15 @@ def _append_article_mark(url, article):
 
 def _query_dict(query_string):
     return dict(parse_qsl(query_string or '', keep_blank_values=True))
+
+
+def _article_url_values(article):
+    return {
+        'article_id': str(article.id),
+        'article_public_id': str(article.public_id),
+        'article_uuid': str(article.public_id),
+        'ad_vtr_name': f'article_{article.id}',
+    }
 
 
 def _client_ip(request):
@@ -772,9 +782,18 @@ def public_article(request, public_id):
 def public_article_group(request, public_id):
     group = get_object_or_404(ArticleGroup, public_id=public_id, status=ArticleStatus.ACTIVE)
     membership = _select_group_membership(group)
+    merged_query_string = _merge_query_strings(request.META.get('QUERY_STRING', ''), membership.utm_query)
+    target_query_string = tracking_query_string(
+        merged_query_string,
+        _article_url_values(membership.article),
+        add_missing={
+            'article_id': membership.article.id,
+            'article_public_id': membership.article.public_id,
+        },
+    )
     target_url = _append_query_string(
         membership.article.get_public_url(),
-        _merge_query_strings(request.META.get('QUERY_STRING', ''), membership.utm_query),
+        target_query_string,
     )
     return redirect(target_url)
 
