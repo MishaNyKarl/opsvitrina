@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ article.title }}</title>
-  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}?v=20260526-2">
+  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}?v=20260526-3">
 </head>
 <body>
   <header class="news-header">
@@ -64,7 +64,7 @@
 
   {% if banner_slots.popup %}
     <aside class="popup-slot banner-unit" data-banner-id="{{ banner_slots.popup.id }}" data-banner-utm="{{ banner_slots.popup.utm_key }}">
-      <button type="button" aria-label="Закрыть">×</button>
+      <button type="button" aria-label="Закрыть" data-popup-close>×</button>
       <a class="popup-banner-link" href="{% url 'banners:click' banner_slots.popup.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
         <span class="banner-unit-media">
           <img src="{{ banner_slots.popup.image.image.url }}" alt="">
@@ -76,7 +76,7 @@
     </aside>
   {% else %}
   <aside class="popup-slot ad-slot" data-slot="bottom-popup">
-    <button type="button" aria-label="Закрыть">×</button>
+    <button type="button" aria-label="Закрыть" data-popup-close>×</button>
     <div class="ad-image-placeholder mini"></div>
     <strong>Слот нижнего pop-up баннера</strong>
   </aside>
@@ -122,6 +122,22 @@
 
       observer.observe(sentinel);
       loadMore();
+    })();
+  </script>
+  <script>
+    (() => {
+      const popup = document.querySelector('.popup-slot');
+      const closeButton = popup && popup.querySelector('[data-popup-close]');
+      if (!popup || !closeButton) return;
+
+      closeButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        popup.classList.add('is-hidden');
+        window.setTimeout(() => {
+          popup.classList.remove('is-hidden');
+        }, 20000);
+      });
     })();
   </script>
 </body>
