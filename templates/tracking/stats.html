@@ -120,6 +120,8 @@
         <option value="pageviews" {% if article_sort == "pageviews" %}selected{% endif %}>Показы ↑</option>
         <option value="-outbound_clicks" {% if article_sort == "-outbound_clicks" %}selected{% endif %}>Исходящие клики ↓</option>
         <option value="-banner_clicks" {% if article_sort == "-banner_clicks" %}selected{% endif %}>Баннерные клики ↓</option>
+        <option value="-internal_clicks" {% if article_sort == "-internal_clicks" %}selected{% endif %}>Переходы дальше ↓</option>
+        <option value="-engagement_clicks" {% if article_sort == "-engagement_clicks" %}selected{% endif %}>Вовлеченные клики ↓</option>
         <option value="-avg_scroll" {% if article_sort == "-avg_scroll" %}selected{% endif %}>Скролл ↓</option>
         <option value="-avg_time" {% if article_sort == "-avg_time" %}selected{% endif %}>Время ↓</option>
       </select>
@@ -139,6 +141,9 @@
         <th>CTR исх.</th>
         <th>Баннерные клики</th>
         <th>CTR банн.</th>
+        <th>Дальше</th>
+        <th>CTR дальше</th>
+        <th>Вовлеч.</th>
         <th>События</th>
         <th>Сессии</th>
         <th>Скролл</th>
@@ -158,13 +163,16 @@
           <td>{{ row.outbound_ctr }}%</td>
           <td>{{ row.banner_clicks }}</td>
           <td>{{ row.banner_ctr }}%</td>
+          <td>{{ row.internal_clicks }}</td>
+          <td>{{ row.internal_ctr }}%</td>
+          <td>{{ row.engagement_clicks }}</td>
           <td>{{ row.events }}</td>
           <td>{{ row.sessions }}</td>
           <td>{{ row.avg_scroll }}%</td>
           <td>{{ row.avg_time }} c</td>
         </tr>
       {% empty %}
-        <tr><td colspan="14" class="empty">Статистики по статьям пока нет</td></tr>
+        <tr><td colspan="17" class="empty">Статистики по статьям пока нет</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -182,6 +190,8 @@
         <option value="name" {% if article_group_sort == "name" %}selected{% endif %}>Название ↑</option>
         <option value="-outbound_clicks" {% if article_group_sort == "-outbound_clicks" %}selected{% endif %}>Исходящие клики ↓</option>
         <option value="-banner_clicks" {% if article_group_sort == "-banner_clicks" %}selected{% endif %}>Баннерные клики ↓</option>
+        <option value="-internal_clicks" {% if article_group_sort == "-internal_clicks" %}selected{% endif %}>Переходы дальше ↓</option>
+        <option value="-engagement_clicks" {% if article_group_sort == "-engagement_clicks" %}selected{% endif %}>Вовлеченные клики ↓</option>
         <option value="-avg_scroll" {% if article_group_sort == "-avg_scroll" %}selected{% endif %}>Скролл ↓</option>
         <option value="-avg_time" {% if article_group_sort == "-avg_time" %}selected{% endif %}>Время ↓</option>
       </select>
@@ -201,6 +211,9 @@
         <th>CTR исх.</th>
         <th>Баннерные клики</th>
         <th>CTR банн.</th>
+        <th>Дальше</th>
+        <th>CTR дальше</th>
+        <th>Вовлеч.</th>
         <th>События</th>
         <th>Сессии</th>
         <th>Скролл</th>
@@ -220,13 +233,16 @@
           <td>{{ row.outbound_ctr }}%</td>
           <td>{{ row.banner_clicks }}</td>
           <td>{{ row.banner_ctr }}%</td>
+          <td>{{ row.internal_clicks }}</td>
+          <td>{{ row.internal_ctr }}%</td>
+          <td>{{ row.engagement_clicks }}</td>
           <td>{{ row.events }}</td>
           <td>{{ row.sessions }}</td>
           <td>{{ row.avg_scroll }}%</td>
           <td>{{ row.avg_time }} c</td>
         </tr>
       {% empty %}
-        <tr><td colspan="14" class="empty">Статистики по группам статей пока нет</td></tr>
+        <tr><td colspan="17" class="empty">Статистики по группам статей пока нет</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -1,7 +1,7 @@
 {% for item in items %}
   {% if item.type == "banner" %}
     <a class="next-feed-card next-feed-card--banner" href="{% url 'banners:click' item.banner.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" data-banner-id="{{ item.banner.id }}" data-banner-utm="{{ item.banner.utm_key }}">
-      <span class="next-feed-ad-label">Реклама</span>
+      <span class="next-feed-ad-label">{{ ui_texts.ad }}</span>
       <span class="next-feed-media">
         <img src="{{ item.banner.image.image.url }}" alt="">
       </span>
@@ -11,7 +11,18 @@
       </span>
     </a>
   {% else %}
-    <a class="next-feed-card" href="{{ item.url }}" data-internal-vtr-name="{{ item.internal_vtr_name }}" data-internal-position="{{ item.position }}">
+    <a class="next-feed-card next-feed-card--story" href="{{ item.url }}" data-internal-vtr-name="{{ item.internal_vtr_name }}" data-internal-position="{{ item.position }}">
+      <span class="next-feed-source">
+        <span class="source-avatar small">{{ item.article.title|first|upper }}</span>
+        <span>
+          <strong>{{ item.article.vertical.name|default:ui_texts.brand }}</strong>
+          <small>{{ ui_texts.minute }}</small>
+        </span>
+      </span>
+      <strong class="next-feed-title">{{ item.article.title }}</strong>
+      {% if item.excerpt %}
+        <span class="next-feed-excerpt">{{ item.excerpt }} <b>{{ ui_texts.read_more }}</b></span>
+      {% endif %}
       <span class="next-feed-media">
         {% if item.article.image %}
           <img src="{{ item.article.image.url }}" alt="">
@@ -19,9 +30,10 @@
           <span class="next-feed-placeholder"></span>
         {% endif %}
       </span>
-      <span class="next-feed-body">
-        <strong>{{ item.article.title }}</strong>
-        {% if item.article.vertical %}<em>{{ item.article.vertical.name }}</em>{% endif %}
+      <span class="next-feed-actions">
+        <span>★</span>
+        <span>♡ 257</span>
+        <span>☰ 11</span>
       </span>
     </a>
   {% endif %}

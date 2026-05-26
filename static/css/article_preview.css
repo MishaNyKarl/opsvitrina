@@ -216,6 +216,12 @@ main {
   font-weight: 900;
 }
 
+.source-avatar.small {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+}
+
 .article-source strong,
 .article-source small {
   display: block;
@@ -494,6 +500,66 @@ main {
   border-color: #f3b8bc;
 }
 
+.next-feed-card--story {
+  display: grid;
+  grid-template-rows: auto auto auto 260px auto;
+  gap: 10px;
+  padding: 18px;
+}
+
+.next-feed-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.next-feed-source strong,
+.next-feed-source small {
+  display: block;
+}
+
+.next-feed-source strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.next-feed-source small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.next-feed-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 26px;
+  line-height: 1.18;
+  font-weight: 900;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.next-feed-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1.45;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.next-feed-excerpt b {
+  white-space: nowrap;
+}
+
+.next-feed-actions {
+  display: flex;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .next-feed-ad-label {
   position: absolute;
   z-index: 1;
@@ -582,8 +648,7 @@ main {
   }
 
   .news-header {
-    position: sticky;
-    top: 0;
+    position: static;
     z-index: 5;
     display: grid;
     grid-template-columns: 44px 1fr 44px;
@@ -787,6 +852,22 @@ main {
     min-height: 292px;
   }
 
+  .next-feed-card--story {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto 220px auto;
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .next-feed-title {
+    font-size: 22px;
+  }
+
+  .next-feed-excerpt {
+    font-size: 17px;
+    -webkit-line-clamp: 3;
+  }
+
   .next-feed-body {
     gap: 4px;
     padding: 8px 10px;
@@ -816,6 +897,11 @@ main {
 
   .next-feed-card--banner .next-feed-media {
     height: 190px;
+  }
+
+  .next-feed-card--story .next-feed-media {
+    height: 220px;
+    border-radius: 12px;
   }
 
   .popup-slot {

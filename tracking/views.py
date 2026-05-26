@@ -29,6 +29,10 @@ ARTICLE_SORTS = {
     '-outbound_clicks',
     'banner_clicks',
     '-banner_clicks',
+    'internal_clicks',
+    '-internal_clicks',
+    'engagement_clicks',
+    '-engagement_clicks',
     'avg_scroll',
     '-avg_scroll',
     'avg_time',
@@ -203,6 +207,8 @@ def _article_rows(events, sort):
             clicks=Count('id', filter=models.Q(event_type='click')),
             outbound_clicks=Count('id', filter=models.Q(event_type='outbound_click')),
             banner_clicks=Count('id', filter=models.Q(event_type='outbound_click', target_url__icontains='/banners/')),
+            internal_clicks=Count('id', filter=models.Q(event_type='outbound_click', target_url__icontains='internal_source=next_feed')),
+            engagement_clicks=Count('id', filter=models.Q(event_type='engagement_click')),
             events=Count('id'),
             sessions=Count('session_id', distinct=True),
             avg_scroll=Avg('scroll_depth'),
@@ -214,6 +220,7 @@ def _article_rows(events, sort):
         pageviews = _int(row['pageviews'])
         outbound_clicks = _int(row['outbound_clicks'])
         banner_clicks = _int(row['banner_clicks'])
+        internal_clicks = _int(row['internal_clicks'])
         normalized.append({
             'article_id': row['article_id'],
             'title': row['article__title'],
@@ -224,12 +231,15 @@ def _article_rows(events, sort):
             'clicks': _int(row['clicks']),
             'outbound_clicks': outbound_clicks,
             'banner_clicks': banner_clicks,
+            'internal_clicks': internal_clicks,
+            'engagement_clicks': _int(row['engagement_clicks']),
             'events': _int(row['events']),
             'sessions': _int(row['sessions']),
             'avg_scroll': _float(row['avg_scroll']),
             'avg_time': _float(row['avg_time']),
             'outbound_ctr': _pct(outbound_clicks, pageviews),
             'banner_ctr': _pct(banner_clicks, pageviews),
+            'internal_ctr': _pct(internal_clicks, pageviews),
         })
     return _sort_rows(normalized, sort, '-pageviews')
 
@@ -246,6 +256,8 @@ def _article_group_rows(events, sort):
             clicks=Count('id', filter=models.Q(event_type='click')),
             outbound_clicks=Count('id', filter=models.Q(event_type='outbound_click')),
             banner_clicks=Count('id', filter=models.Q(event_type='outbound_click', target_url__icontains='/banners/')),
+            internal_clicks=Count('id', filter=models.Q(event_type='outbound_click', target_url__icontains='internal_source=next_feed')),
+            engagement_clicks=Count('id', filter=models.Q(event_type='engagement_click')),
             events=Count('id'),
             sessions=Count('session_id', distinct=True),
             avg_scroll=Avg('scroll_depth'),
@@ -254,6 +266,7 @@ def _article_group_rows(events, sort):
         pageviews = _int(aggregate['pageviews'])
         outbound_clicks = _int(aggregate['outbound_clicks'])
         banner_clicks = _int(aggregate['banner_clicks'])
+        internal_clicks = _int(aggregate['internal_clicks'])
         rows.append({
             'group_id': group.id,
             'name': group.name,
@@ -264,12 +277,15 @@ def _article_group_rows(events, sort):
             'clicks': _int(aggregate['clicks']),
             'outbound_clicks': outbound_clicks,
             'banner_clicks': banner_clicks,
+            'internal_clicks': internal_clicks,
+            'engagement_clicks': _int(aggregate['engagement_clicks']),
             'events': _int(aggregate['events']),
             'sessions': _int(aggregate['sessions']),
             'avg_scroll': _float(aggregate['avg_scroll']),
             'avg_time': _float(aggregate['avg_time']),
             'outbound_ctr': _pct(outbound_clicks, pageviews),
             'banner_ctr': _pct(banner_clicks, pageviews),
+            'internal_ctr': _pct(internal_clicks, pageviews),
         })
     return _sort_rows(rows, sort, '-pageviews')
 
@@ -347,18 +363,18 @@ def _export(request, article_rows, article_group_rows, banner_rows):
     if export_type == 'articles':
         return _csv_response(
             'article_stats.csv',
-            ['ID', 'Article', 'GEO', 'Vertical', 'Buyer', 'Pageviews', 'Clicks', 'Outbound clicks', 'Outbound CTR', 'Banner clicks', 'Banner CTR', 'Events', 'Sessions', 'Avg scroll', 'Avg time'],
+            ['ID', 'Article', 'GEO', 'Vertical', 'Buyer', 'Pageviews', 'Clicks', 'Outbound clicks', 'Outbound CTR', 'Banner clicks', 'Banner CTR', 'Internal clicks', 'Internal CTR', 'Engagement clicks', 'Events', 'Sessions', 'Avg scroll', 'Avg time'],
             [
-                [row['article_id'], row['title'], row['geo'], row['vertical'], row['buyer'], row['pageviews'], row['clicks'], row['outbound_clicks'], row['outbound_ctr'], row['banner_clicks'], row['banner_ctr'], row['events'], row['sessions'], row['avg_scroll'], row['avg_time']]
+                [row['article_id'], row['title'], row['geo'], row['vertical'], row['buyer'], row['pageviews'], row['clicks'], row['outbound_clicks'], row['outbound_ctr'], row['banner_clicks'], row['banner_ctr'], row['internal_clicks'], row['internal_ctr'], row['engagement_clicks'], row['events'], row['sessions'], row['avg_scroll'], row['avg_time']]
                 for row in article_rows
             ],
         )
     if export_type == 'article_groups':
         return _csv_response(
             'article_group_stats.csv',
-            ['ID', 'Group', 'GEO', 'Vertical', 'Articles', 'Pageviews', 'Clicks', 'Outbound clicks', 'Outbound CTR', 'Banner clicks', 'Banner CTR', 'Events', 'Sessions', 'Avg scroll', 'Avg time'],
+            ['ID', 'Group', 'GEO', 'Vertical', 'Articles', 'Pageviews', 'Clicks', 'Outbound clicks', 'Outbound CTR', 'Banner clicks', 'Banner CTR', 'Internal clicks', 'Internal CTR', 'Engagement clicks', 'Events', 'Sessions', 'Avg scroll', 'Avg time'],
             [
-                [row['group_id'], row['name'], row['geo'], row['vertical'], row['articles_count'], row['pageviews'], row['clicks'], row['outbound_clicks'], row['outbound_ctr'], row['banner_clicks'], row['banner_ctr'], row['events'], row['sessions'], row['avg_scroll'], row['avg_time']]
+                [row['group_id'], row['name'], row['geo'], row['vertical'], row['articles_count'], row['pageviews'], row['clicks'], row['outbound_clicks'], row['outbound_ctr'], row['banner_clicks'], row['banner_ctr'], row['internal_clicks'], row['internal_ctr'], row['engagement_clicks'], row['events'], row['sessions'], row['avg_scroll'], row['avg_time']]
                 for row in article_group_rows
             ],
         )

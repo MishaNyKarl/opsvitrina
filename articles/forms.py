@@ -138,6 +138,7 @@ class ArticleGroupForm(forms.ModelForm):
             'geo',
             'vertical',
             'description',
+            'ui_language',
             'tracker_profile',
             'next_article_groups',
             'status',

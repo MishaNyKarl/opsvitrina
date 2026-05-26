@@ -34,6 +34,14 @@ class OutboundMarkValueMode(models.TextChoices):
     CUSTOM = 'custom', 'Свое значение'
 
 
+class ArticleUiLanguage(models.TextChoices):
+    RU = 'ru', 'Русский'
+    EN = 'en', 'English'
+    FR = 'fr', 'Français'
+    PT = 'pt', 'Português'
+    ES = 'es', 'Español'
+
+
 class Category(TimestampedModel):
     name = models.CharField('Название', max_length=120, unique=True)
     slug = models.SlugField('Slug', max_length=140, unique=True, blank=True)
@@ -84,6 +92,13 @@ class ArticleGroup(OwnedModel):
         related_name='article_groups',
     )
     description = models.TextField('Описание', blank=True)
+    ui_language = models.CharField(
+        'Язык интерфейса витрины',
+        max_length=8,
+        choices=ArticleUiLanguage.choices,
+        default=ArticleUiLanguage.RU,
+        help_text='Язык кнопок и служебных текстов на публичных статьях этой группы.',
+    )
     tracker_profile = models.ForeignKey(
         'tracking.TrackerProfile',
         verbose_name='Профиль трекера',

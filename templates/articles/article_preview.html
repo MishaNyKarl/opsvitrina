@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ article.title }}</title>
-  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}?v=20260526-4">
+  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}?v=20260526-5">
 </head>
 <body>
   <header class="news-header">
@@ -14,7 +14,7 @@
       <a href="#">Шоу-бизнес</a>
       <a href="#">Здоровье</a>
     </nav>
-    <div class="news-logo"><span>Н</span> Новости недели</div>
+    <div class="news-logo"><span>Н</span> {{ ui_texts.brand }}</div>
     <button class="search-button" type="button" aria-label="Поиск">⌕</button>
   </header>
 
@@ -29,10 +29,10 @@
         <div class="article-source">
           <span class="source-avatar">{{ article.title|first|upper }}</span>
           <span>
-            <strong>{{ article.vertical.name|default:"Новости" }}</strong>
-            <small>{{ article.created_at|date:"d E" }} · 1 мин</small>
+            <strong>{{ article.vertical.name|default:ui_texts.brand }}</strong>
+            <small>{{ article.created_at|date:"d E" }} · {{ ui_texts.minute }}</small>
           </span>
-          <button type="button">Подписаться</button>
+          <button type="button">{{ ui_texts.subscribe }}</button>
         </div>
         <h1 class="article-title">{{ article.title }}</h1>
         {% if article.image %}
@@ -56,7 +56,7 @@
     </section>
 
     <section class="next-feed" data-next-feed data-feed-url="{{ next_feed_url }}">
-      <h2>Рекомендуем почитать</h2>
+      <h2>{{ ui_texts.recommend }}</h2>
       <div class="next-feed-grid" data-next-feed-grid></div>
       <div class="next-feed-sentinel" data-next-feed-sentinel></div>
     </section>
@@ -78,7 +78,7 @@
   <aside class="popup-slot ad-slot" data-slot="bottom-popup">
     <button type="button" aria-label="Закрыть" data-popup-close>×</button>
     <div class="ad-image-placeholder mini"></div>
-    <strong>Слот нижнего pop-up баннера</strong>
+    <strong>{{ ui_texts.popup_fallback }}</strong>
   </aside>
   {% endif %}
   {{ tracking_config|json_script:"article-tracking-config" }}

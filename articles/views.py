@@ -12,6 +12,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import escapejs
+from django.utils.text import Truncator
+from django.utils.html import strip_tags
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -26,6 +28,55 @@ HTML_SLOT_PATTERN = re.compile(
     r'<(?P<tag>[a-zA-Z][\w:-]*)(?P<attrs_before>[^>]*)\sdata-vitrina-slot=(?P<quote>[\'"])(?P<slot>[\w-]+)(?P=quote)(?P<attrs_after>[^>]*)>.*?</(?P=tag)>',
     re.IGNORECASE | re.DOTALL,
 )
+
+
+UI_TEXTS = {
+    'ru': {
+        'brand': 'Новости недели',
+        'subscribe': 'Подписаться',
+        'recommend': 'Рекомендуем почитать',
+        'ad': 'Реклама',
+        'read_more': 'Читать далее',
+        'minute': '1 мин',
+        'popup_fallback': 'Слот нижнего pop-up баннера',
+    },
+    'en': {
+        'brand': 'Weekly News',
+        'subscribe': 'Subscribe',
+        'recommend': 'Recommended',
+        'ad': 'Ad',
+        'read_more': 'Read more',
+        'minute': '1 min',
+        'popup_fallback': 'Bottom pop-up ad slot',
+    },
+    'fr': {
+        'brand': 'Nouvelles de la semaine',
+        'subscribe': 'S’abonner',
+        'recommend': 'À lire aussi',
+        'ad': 'Publicité',
+        'read_more': 'Lire la suite',
+        'minute': '1 min',
+        'popup_fallback': 'Emplacement publicitaire pop-up',
+    },
+    'pt': {
+        'brand': 'Notícias da semana',
+        'subscribe': 'Inscrever-se',
+        'recommend': 'Recomendamos ler',
+        'ad': 'Publicidade',
+        'read_more': 'Ler mais',
+        'minute': '1 min',
+        'popup_fallback': 'Espaço de anúncio pop-up',
+    },
+    'es': {
+        'brand': 'Noticias de la semana',
+        'subscribe': 'Suscribirse',
+        'recommend': 'Recomendamos leer',
+        'ad': 'Publicidad',
+        'read_more': 'Leer más',
+        'minute': '1 min',
+        'popup_fallback': 'Espacio publicitario emergente',
+    },
+}
 
 
 def _article_banner_utm_key(article):
@@ -102,6 +153,14 @@ def _next_feed_groups(article, request):
         return group_feed or [incoming_group]
 
     return list(article.groups.filter(status=ArticleStatus.ACTIVE))
+
+
+def _article_ui_texts(article, request):
+    group = _incoming_group(request)
+    if group is None:
+        group = article.groups.filter(status=ArticleStatus.ACTIVE).first()
+    language = (group.ui_language if group else 'ru') or 'ru'
+    return UI_TEXTS.get(language, UI_TEXTS['ru'])
 
 
 def _next_article_url(request, article, position=None):
@@ -341,6 +400,7 @@ def _next_feed_items(article, request, page, page_size):
             'url': _next_article_url(request, next_article, position=position),
             'position': position,
             'internal_vtr_name': f'article_{next_article.id}_feed_{position}',
+            'excerpt': Truncator(strip_tags(next_article.body or '')).chars(150),
         })
     if banners and not items:
         items = [{'type': 'banner', 'banner': banner} for banner in banners]
@@ -423,6 +483,7 @@ def _render_article_response(request, article, extra_query_string=''):
         'banner_slots': _article_banners(article, request),
         'tracking_config': _article_tracking_config(article),
         'next_feed_url': reverse('public_article_next_feed', kwargs={'public_id': article.public_id}),
+        'ui_texts': _article_ui_texts(article, request),
     })
 
 
@@ -928,6 +989,7 @@ def public_article_next_feed(request, public_id):
     return render(request, 'articles/partials/next_article_feed.html', {
         'items': items,
         'request': request,
+        'ui_texts': _article_ui_texts(article, request),
     })
 
 
