@@ -104,7 +104,9 @@ def _next_feed_groups(article, request):
     return list(article.groups.filter(status=ArticleStatus.ACTIVE))
 
 
-def _next_article_url(request, article):
+def _next_article_url(request, article, position=None):
+    internal_position = position or 1
+    internal_vtr_name = f'article_{article.id}_feed_{internal_position}'
     query_string = tracking_query_string(
         request.META.get('QUERY_STRING', ''),
         _article_url_values(article),
@@ -113,6 +115,11 @@ def _next_article_url(request, article):
             'article_id': article.id,
             'article_public_id': article.public_id,
             'ad_vtr_name': f'article_{article.id}',
+            'internal_vtr_name': internal_vtr_name,
+            'internal_article_id': article.id,
+            'internal_article_public_id': article.public_id,
+            'internal_position': internal_position,
+            'internal_source': 'next_feed',
         },
     )
     return _append_query_string(article.get_public_url(), query_string)
@@ -323,6 +330,7 @@ def _next_feed_items(article, request, page, page_size):
     items = []
     banner_index = 0
     for index, next_article in enumerate(articles):
+        position = (max(page, 0) * page_size) + index + 1
         if index > 0 and index % 3 == 0 and banners:
             banner = banners[banner_index % len(banners)]
             items.append({'type': 'banner', 'banner': banner})
@@ -330,7 +338,9 @@ def _next_feed_items(article, request, page, page_size):
         items.append({
             'type': 'article',
             'article': next_article,
-            'url': _next_article_url(request, next_article),
+            'url': _next_article_url(request, next_article, position=position),
+            'position': position,
+            'internal_vtr_name': f'article_{next_article.id}_feed_{position}',
         })
     if banners and not items:
         items = [{'type': 'banner', 'banner': banner} for banner in banners]

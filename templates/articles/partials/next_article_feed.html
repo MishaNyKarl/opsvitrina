@@ -11,7 +11,7 @@
       </span>
     </a>
   {% else %}
-    <a class="next-feed-card" href="{{ item.url }}">
+    <a class="next-feed-card" href="{{ item.url }}" data-internal-vtr-name="{{ item.internal_vtr_name }}" data-internal-position="{{ item.position }}">
       <span class="next-feed-media">
         {% if item.article.image %}
           <img src="{{ item.article.image.url }}" alt="">
