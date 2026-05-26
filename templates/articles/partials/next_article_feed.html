@@ -1,0 +1,26 @@
+{% for banner in banners %}
+  <a class="next-feed-card next-feed-card--banner" href="{% url 'banners:click' banner.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" data-banner-id="{{ banner.id }}" data-banner-utm="{{ banner.utm_key }}">
+    <span class="next-feed-media">
+      <img src="{{ banner.image.image.url }}" alt="">
+    </span>
+    <span class="next-feed-body">
+      <strong>{{ banner.headline.text }}</strong>
+    </span>
+  </a>
+{% endfor %}
+
+{% for item in articles %}
+  <a class="next-feed-card" href="{{ item.url }}">
+    <span class="next-feed-media">
+      {% if item.article.image %}
+        <img src="{{ item.article.image.url }}" alt="">
+      {% else %}
+        <span class="next-feed-placeholder"></span>
+      {% endif %}
+    </span>
+    <span class="next-feed-body">
+      <strong>{{ item.article.title }}</strong>
+      {% if item.article.vertical %}<em>{{ item.article.vertical.name }}</em>{% endif %}
+    </span>
+  </a>
+{% endfor %}

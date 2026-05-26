@@ -18,12 +18,28 @@
     <input type="hidden" name="form_action" value="settings">
     {{ form.non_field_errors }}
     {% for field in form %}
-      <label class="{% if field.name == 'description' %}wide{% endif %}">
-        <span>{{ field.label }}</span>
-        {{ field }}
-        {{ field.errors }}
-      </label>
+      {% if field.name != "next_article_groups" %}
+        <label class="{% if field.name == 'description' %}wide{% endif %}">
+          <span>{{ field.label }}</span>
+          {{ field }}
+          {{ field.errors }}
+        </label>
+      {% endif %}
     {% endfor %}
+    <details class="advanced-settings wide">
+      <summary>
+        <span class="advanced-settings-chevron">V</span>
+        <span>Другие статьи</span>
+      </summary>
+      <div class="advanced-settings-grid">
+        <label class="wide">
+          <span>{{ form.next_article_groups.label }}</span>
+          {{ form.next_article_groups }}
+          {% if form.next_article_groups.help_text %}<small class="help-text">{{ form.next_article_groups.help_text }}</small>{% endif %}
+          {{ form.next_article_groups.errors }}
+        </label>
+      </div>
+    </details>
     <div class="form-actions wide">
       <button class="button primary" type="submit">Сохранить</button>
       <a class="button" href="{% url 'articles:list' %}">Отмена</a>

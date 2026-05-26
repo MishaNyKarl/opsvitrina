@@ -20,12 +20,13 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from articles.views import article_behavior_event, public_article, public_article_group
+from articles.views import article_behavior_event, public_article, public_article_group, public_article_next_feed
 from core.views import dashboard
 
 urlpatterns = [
     path('', dashboard, name='dashboard'),
     path('a/<uuid:public_id>/events/', article_behavior_event, name='article_behavior_event'),
+    path('a/<uuid:public_id>/next/', public_article_next_feed, name='public_article_next_feed'),
     path('a/<uuid:public_id>/', public_article, name='public_article'),
     path('g/<uuid:public_id>/', public_article_group, name='public_article_group'),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),

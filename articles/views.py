@@ -84,6 +84,40 @@ def _article_url_values(article):
     }
 
 
+def _incoming_group(request):
+    raw_group = request.GET.get('v_group') or ''
+    if not raw_group:
+        return None
+    return ArticleGroup.objects.filter(public_id=raw_group, status=ArticleStatus.ACTIVE).first()
+
+
+def _next_feed_groups(article, request):
+    article_groups = list(article.next_article_groups.filter(status=ArticleStatus.ACTIVE))
+    if article_groups:
+        return article_groups
+
+    incoming_group = _incoming_group(request)
+    if incoming_group:
+        group_feed = list(incoming_group.next_article_groups.filter(status=ArticleStatus.ACTIVE))
+        return group_feed or [incoming_group]
+
+    return list(article.groups.filter(status=ArticleStatus.ACTIVE))
+
+
+def _next_article_url(request, article):
+    query_string = tracking_query_string(
+        request.META.get('QUERY_STRING', ''),
+        _article_url_values(article),
+        force_values={
+            'v_depth': 2,
+            'article_id': article.id,
+            'article_public_id': article.public_id,
+            'ad_vtr_name': f'article_{article.id}',
+        },
+    )
+    return _append_query_string(article.get_public_url(), query_string)
+
+
 def _client_ip(request):
     forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if forwarded_for:
@@ -131,12 +165,13 @@ def _inject_html_tracking(html, article):
 
 
 def _request_banner_tier(request):
-    raw_tier = (
-        request.GET.get('banner_tier')
-        or request.GET.get('echelon')
-        or request.GET.get('tier')
-        or BannerTier.FIRST
-    )
+    raw_tier = request.GET.get('banner_tier') or request.GET.get('echelon') or request.GET.get('tier')
+    if not raw_tier:
+        try:
+            depth = int(request.GET.get('v_depth') or 1)
+        except (TypeError, ValueError):
+            depth = 1
+        return BannerTier.SECOND if depth >= 2 else BannerTier.FIRST
     try:
         tier = int(raw_tier)
     except (TypeError, ValueError):
@@ -219,6 +254,44 @@ def _placement_banners(article, display_tier, slot_names):
     return {slot: article_pins.get(slot) or group_pins.get(slot) for slot in slot_names}
 
 
+def _next_feed_articles(article, request, page, page_size):
+    groups = _next_feed_groups(article, request)
+    if groups:
+        queryset = Article.objects.filter(groups__in=groups, status=ArticleStatus.ACTIVE)
+    else:
+        queryset = Article.objects.filter(status=ArticleStatus.ACTIVE)
+        if article.country:
+            queryset = queryset.filter(country=article.country)
+        if article.vertical_id:
+            queryset = queryset.filter(vertical=article.vertical)
+
+    articles = list(queryset.distinct().select_related('vertical').order_by('-created_at', 'id'))
+    if len(articles) > 1:
+        articles = [candidate for candidate in articles if candidate.id != article.id]
+    if not articles:
+        articles = list(Article.objects.filter(status=ArticleStatus.ACTIVE).exclude(id=article.id).order_by('-created_at', 'id'))
+    if not articles:
+        return []
+
+    start = max(page, 0) * page_size
+    return [articles[index % len(articles)] for index in range(start, start + page_size)]
+
+
+def _next_feed_pinned_banners(article, request):
+    display_tier = _request_banner_tier(request)
+    placements = (
+        BannerPlacement.objects
+        .filter(article=article, is_active=True, display_tier=display_tier)
+        .select_related('banner', 'banner__group', 'banner__image', 'banner__headline')
+        .order_by('slot', 'id')
+    )
+    return [
+        placement.banner
+        for placement in placements
+        if placement.banner.status == BannerStatus.ACTIVE and placement.banner.group.status == BannerStatus.ACTIVE
+    ]
+
+
 def _normalize_slot_name(slot_name):
     return (slot_name or '').strip().lower().replace('-', '_')
 
@@ -291,6 +364,7 @@ def _render_article_response(request, article, extra_query_string=''):
         'article': article,
         'banner_slots': _article_banners(article, request),
         'tracking_config': _article_tracking_config(article),
+        'next_feed_url': reverse('public_article_next_feed', kwargs={'public_id': article.public_id}),
     })
 
 
@@ -779,6 +853,32 @@ def public_article(request, public_id):
     return _render_article_response(request, article)
 
 
+def public_article_next_feed(request, public_id):
+    article = get_object_or_404(
+        Article.objects.select_related('category', 'vertical', 'owner'),
+        public_id=public_id,
+        status=ArticleStatus.ACTIVE,
+    )
+    try:
+        page = int(request.GET.get('page') or 0)
+    except (TypeError, ValueError):
+        page = 0
+    page_size = 10
+    articles = _next_feed_articles(article, request, page, page_size)
+    banners = _next_feed_pinned_banners(article, request) if page == 0 else []
+    return render(request, 'articles/partials/next_article_feed.html', {
+        'articles': [
+            {
+                'article': next_article,
+                'url': _next_article_url(request, next_article),
+            }
+            for next_article in articles
+        ],
+        'banners': banners,
+        'request': request,
+    })
+
+
 def public_article_group(request, public_id):
     group = get_object_or_404(ArticleGroup, public_id=public_id, status=ArticleStatus.ACTIVE)
     membership = _select_group_membership(group)
@@ -789,6 +889,8 @@ def public_article_group(request, public_id):
         add_missing={
             'article_id': membership.article.id,
             'article_public_id': membership.article.public_id,
+            'v_depth': 1,
+            'v_group': group.public_id,
         },
     )
     target_url = _append_query_string(

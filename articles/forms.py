@@ -29,6 +29,7 @@ class ArticleForm(forms.ModelForm):
             'vertical',
             'article_groups',
             'new_article_group',
+            'next_article_groups',
             'tags',
             'country',
             'language',
@@ -55,6 +56,7 @@ class ArticleForm(forms.ModelForm):
         self.fields['status'].initial = ArticleStatus.ACTIVE
         if user is not None:
             self.fields['article_groups'].queryset = ArticleGroup.objects.visible_for(user)
+            self.fields['next_article_groups'].queryset = ArticleGroup.objects.visible_for(user)
             self.fields['tracker_profile'].queryset = TrackerProfile.objects.visible_for(user).filter(is_active=True)
         if self.instance and self.instance.pk:
             self.fields['article_groups'].initial = self.instance.groups.all()
@@ -137,13 +139,19 @@ class ArticleGroupForm(forms.ModelForm):
             'vertical',
             'description',
             'tracker_profile',
+            'next_article_groups',
             'status',
         )
+        help_texts = {
+            'next_article_groups': 'Из этих групп будут подбираться карточки в нижнем блоке "Другие статьи". Если пусто, используется сама группа.',
+        }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
+            'next_article_groups': forms.CheckboxSelectMultiple,
         }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user is not None:
             self.fields['tracker_profile'].queryset = TrackerProfile.objects.visible_for(user).filter(is_active=True)
+            self.fields['next_article_groups'].queryset = ArticleGroup.objects.visible_for(user)

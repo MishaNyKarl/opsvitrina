@@ -48,6 +48,11 @@
         {% include "articles/partials/banner_slot.html" with banner=banner_slots.sidebar_wide class_name="wide-side-card" fallback_class="wide-side-card" slot_name="sidebar-wide" fallback_text="Слот широкого бокового баннера" show_time="4 часа назад" %}
       </aside>
     </section>
+
+    <section class="next-feed" data-next-feed data-feed-url="{{ next_feed_url }}">
+      <div class="next-feed-grid" data-next-feed-grid></div>
+      <div class="next-feed-sentinel" data-next-feed-sentinel></div>
+    </section>
   </main>
 
   {% if banner_slots.popup %}
@@ -74,5 +79,43 @@
     window.OPSVITRINA_ARTICLE_TRACKING = JSON.parse(document.getElementById('article-tracking-config').textContent);
   </script>
   <script src="{% static 'js/article_tracking.js' %}?v=20260526-1" defer></script>
+  <script>
+    (() => {
+      const feed = document.querySelector('[data-next-feed]');
+      if (!feed) return;
+
+      const grid = feed.querySelector('[data-next-feed-grid]');
+      const sentinel = feed.querySelector('[data-next-feed-sentinel]');
+      const feedUrl = feed.dataset.feedUrl;
+      let page = 0;
+      let loading = false;
+
+      const loadMore = async () => {
+        if (loading) return;
+        loading = true;
+        const url = new URL(feedUrl, window.location.origin);
+        new URLSearchParams(window.location.search).forEach((value, key) => {
+          url.searchParams.set(key, value);
+        });
+        url.searchParams.set('page', page);
+        const response = await fetch(url.toString(), { credentials: 'same-origin' });
+        const html = await response.text();
+        if (html.trim()) {
+          grid.insertAdjacentHTML('beforeend', html);
+          page += 1;
+        }
+        loading = false;
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadMore();
+        }
+      }, { rootMargin: '800px' });
+
+      observer.observe(sentinel);
+      loadMore();
+    })();
+  </script>
 </body>
 </html>

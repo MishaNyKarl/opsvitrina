@@ -92,6 +92,14 @@ class ArticleGroup(OwnedModel):
         blank=True,
         related_name='article_groups',
     )
+    next_article_groups = models.ManyToManyField(
+        'self',
+        verbose_name='Группы для блока "Другие статьи"',
+        blank=True,
+        symmetrical=False,
+        related_name='used_as_next_feed_for',
+        help_text='Если пусто, в нижней ленте используются статьи из этой группы.',
+    )
     status = models.CharField(
         'Статус',
         max_length=24,
@@ -186,6 +194,13 @@ class Article(OwnedModel):
         verbose_name='Группы статей',
         blank=True,
         related_name='articles',
+    )
+    next_article_groups = models.ManyToManyField(
+        ArticleGroup,
+        verbose_name='Группы для нижней ленты',
+        blank=True,
+        related_name='next_feed_articles',
+        help_text='Если пусто, используются настройки группы входа или группы самой статьи.',
     )
     tags = models.CharField('Теги', max_length=255, blank=True)
     country = models.CharField('Страна', max_length=2, blank=True)
