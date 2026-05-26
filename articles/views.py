@@ -292,6 +292,54 @@ def _next_feed_pinned_banners(article, request):
     ]
 
 
+def _next_feed_banners(article, request, count):
+    display_tier = _request_banner_tier(request)
+    article_group_ids = list(article.groups.values_list('id', flat=True))
+    pinned_banners = _next_feed_pinned_banners(article, request)
+    pinned_ids = {banner.id for banner in pinned_banners}
+    query_banners = list(
+        Banner.objects
+        .filter(status=BannerStatus.ACTIVE, group__status=BannerStatus.ACTIVE, display_tier=display_tier)
+        .select_related('group', 'image', 'headline')
+        .filter(
+            models.Q(group__articles=article)
+            | models.Q(group__article_groups__in=article_group_ids)
+            | (models.Q(group__articles__isnull=True) & models.Q(group__article_groups__isnull=True))
+        )
+        .exclude(id__in=pinned_ids)
+        .distinct()
+        .order_by('-priority', '-impressions', 'id')
+    )
+    banners = pinned_banners + query_banners
+    if not banners:
+        return []
+    return [banners[index % len(banners)] for index in range(count)]
+
+
+def _next_feed_items(article, request, page, page_size):
+    articles = _next_feed_articles(article, request, page, page_size)
+    banner_count = max(2, page_size // 3)
+    banners = _next_feed_banners(article, request, banner_count)
+    items = []
+    banner_index = 0
+    for index, next_article in enumerate(articles):
+        if index > 0 and index % 3 == 0 and banners:
+            banner = banners[banner_index % len(banners)]
+            items.append({'type': 'banner', 'banner': banner})
+            banner_index += 1
+        items.append({
+            'type': 'article',
+            'article': next_article,
+            'url': _next_article_url(request, next_article),
+        })
+    if banners and not items:
+        items = [{'type': 'banner', 'banner': banner} for banner in banners]
+    shown_banner_ids = {item['banner'].id for item in items if item['type'] == 'banner'}
+    if shown_banner_ids:
+        Banner.objects.filter(id__in=shown_banner_ids).update(impressions=models.F('impressions') + 1)
+    return items
+
+
 def _normalize_slot_name(slot_name):
     return (slot_name or '').strip().lower().replace('-', '_')
 
@@ -865,18 +913,10 @@ def public_article_next_feed(request, public_id):
         page = int(request.GET.get('page') or 0)
     except (TypeError, ValueError):
         page = 0
-    page_size = 10
-    articles = _next_feed_articles(article, request, page, page_size)
-    banners = _next_feed_pinned_banners(article, request) if page == 0 else []
+    page_size = 12
+    items = _next_feed_items(article, request, page, page_size)
     return render(request, 'articles/partials/next_article_feed.html', {
-        'articles': [
-            {
-                'article': next_article,
-                'url': _next_article_url(request, next_article),
-            }
-            for next_article in articles
-        ],
-        'banners': banners,
+        'items': items,
         'request': request,
     })
 

@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ article.title }}</title>
-  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}">
+  <link rel="stylesheet" href="{% static 'css/article_preview.css' %}?v=20260526-2">
 </head>
 <body>
   <header class="news-header">
@@ -26,13 +26,19 @@
 
     <section class="article-layout">
       <article class="article-card">
+        <div class="article-source">
+          <span class="source-avatar">{{ article.title|first|upper }}</span>
+          <span>
+            <strong>{{ article.vertical.name|default:"Новости" }}</strong>
+            <small>{{ article.created_at|date:"d E" }} · 1 мин</small>
+          </span>
+          <button type="button">Подписаться</button>
+        </div>
+        <h1 class="article-title">{{ article.title }}</h1>
         {% if article.image %}
           <figure class="article-hero">
             <img src="{{ article.image.url }}" alt="">
-            <figcaption>{{ article.title }}</figcaption>
           </figure>
-        {% else %}
-          <h1 class="article-title">{{ article.title }}</h1>
         {% endif %}
 
         <div class="article-body">
@@ -50,6 +56,7 @@
     </section>
 
     <section class="next-feed" data-next-feed data-feed-url="{{ next_feed_url }}">
+      <h2>Рекомендуем почитать</h2>
       <div class="next-feed-grid" data-next-feed-grid></div>
       <div class="next-feed-sentinel" data-next-feed-sentinel></div>
     </section>
