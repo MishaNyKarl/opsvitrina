@@ -52,7 +52,20 @@
           <td>{{ group.geo|default:"-" }}</td>
           <td>{{ group.vertical|default:"-" }}</td>
           <td>{{ group.article_count }}</td>
-          <td><code>{{ group.get_public_url }}</code></td>
+          <td><code><input type="text" id="myInput" value="{{ group.get_public_url }}"></code> <button onclick="copyText()">Копировать</button></td>
+
+          <p id="status"></p>
+          <script>
+            function copyText() {
+              const copyText = document.getElementById("myInput");
+              navigator.clipboard.writeText(copyText.value).then(() => {
+                const status = document.getElementById("status").innerHTML = "Ссылка скопирована!";
+            }).catch(err => {
+                console.error('Ошибка при копировании текста: ', err);
+            });
+            }
+          </script>
+
           <td>{{ group.created_at|date:"d.m.y H:i" }}</td>
           <td>
             <form method="post" action="{% url 'articles:group_toggle_status' group.pk %}" class="toggle-form">
