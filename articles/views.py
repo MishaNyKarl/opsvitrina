@@ -257,9 +257,9 @@ def _placement_banners(article, display_tier, slot_names):
 def _next_feed_articles(article, request, page, page_size):
     groups = _next_feed_groups(article, request)
     if groups:
-        queryset = Article.objects.filter(groups__in=groups, status=ArticleStatus.ACTIVE)
+        queryset = Article.objects.filter(groups__in=groups).exclude(status=ArticleStatus.ARCHIVED)
     else:
-        queryset = Article.objects.filter(status=ArticleStatus.ACTIVE)
+        queryset = Article.objects.exclude(status=ArticleStatus.ARCHIVED)
         if article.country:
             queryset = queryset.filter(country=article.country)
         if article.vertical_id:
@@ -269,7 +269,7 @@ def _next_feed_articles(article, request, page, page_size):
     if len(articles) > 1:
         articles = [candidate for candidate in articles if candidate.id != article.id]
     if not articles:
-        articles = list(Article.objects.filter(status=ArticleStatus.ACTIVE).exclude(id=article.id).order_by('-created_at', 'id'))
+        articles = list(Article.objects.exclude(status=ArticleStatus.ARCHIVED).exclude(id=article.id).order_by('-created_at', 'id'))
     if not articles:
         return []
 
@@ -848,8 +848,9 @@ def public_article(request, public_id):
     article = get_object_or_404(
         Article.objects.select_related('category', 'vertical', 'owner'),
         public_id=public_id,
-        status=ArticleStatus.ACTIVE,
     )
+    if article.status != ArticleStatus.ACTIVE and request.GET.get('v_depth') != '2':
+        raise Http404('Article is not active')
     return _render_article_response(request, article)
 
 
@@ -857,8 +858,9 @@ def public_article_next_feed(request, public_id):
     article = get_object_or_404(
         Article.objects.select_related('category', 'vertical', 'owner'),
         public_id=public_id,
-        status=ArticleStatus.ACTIVE,
     )
+    if article.status == ArticleStatus.ARCHIVED:
+        raise Http404('Article is archived')
     try:
         page = int(request.GET.get('page') or 0)
     except (TypeError, ValueError):
@@ -903,7 +905,9 @@ def public_article_group(request, public_id):
 @csrf_exempt
 @require_POST
 def article_behavior_event(request, public_id):
-    article = get_object_or_404(Article, public_id=public_id, status=ArticleStatus.ACTIVE)
+    article = get_object_or_404(Article, public_id=public_id)
+    if article.status == ArticleStatus.ARCHIVED:
+        raise Http404('Article is archived')
     try:
         data = json.loads(request.body.decode('utf-8') or '{}')
     except json.JSONDecodeError:
