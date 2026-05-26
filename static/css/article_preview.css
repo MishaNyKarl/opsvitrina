@@ -588,10 +588,10 @@ main {
     display: grid;
     grid-template-columns: 44px 1fr 44px;
     min-height: 48px;
-    margin: 0 4px 10px;
-    padding: 0 10px;
+    margin: 8px 8px 13px;
+    padding: 24px 17px;
     border: 0;
-    border-radius: 0 0 16px 16px;
+    border-radius: 16px 16px;
     background: #1f1f22;
     color: #fff;
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
@@ -604,18 +604,21 @@ main {
   .news-logo {
     justify-content: center;
     color: #fff;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 900;
     text-transform: lowercase;
+    margin-left: 42px;
   }
 
   .news-logo span {
-    width: 22px;
-    height: 22px;
+    width: 42px;
+    height: 42px;
     border-width: 2px;
     border-color: #fff;
     color: #fff;
-    font-size: 12px;
+    font-size: 18px;
+    padding: 0 12px;
+    margin-left: 15px;
   }
 
   .search-button {
