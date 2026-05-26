@@ -90,6 +90,13 @@ def _article_tracking_config(article):
         'outboundMarkParam': article.outbound_mark_param,
         'outboundMarkValue': article.get_outbound_mark_value(),
         'outboundMarkReplaceExisting': article.outbound_mark_replace_existing,
+        'engagementEvent': {
+            'enabled': article.engagement_event_enabled,
+            'eventParam': article.engagement_event_param,
+            'eventValue': article.engagement_event_value,
+            'utmParam': article.engagement_utm_param,
+            'utmValue': article.engagement_utm_value,
+        },
         'externalTracker': tracker_profile.frontend_config() if tracker_profile else None,
     }
 
@@ -100,7 +107,7 @@ def _html_tracking_snippet(article):
         '<script>'
         f'window.OPSVITRINA_ARTICLE_TRACKING = JSON.parse("{escapejs(config)}");'
         '</script>'
-        '<script src="/static/js/article_tracking.js" defer></script>'
+        '<script src="/static/js/article_tracking.js?v=20260526-1" defer></script>'
     )
 
 

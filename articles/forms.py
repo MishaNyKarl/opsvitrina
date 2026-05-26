@@ -41,6 +41,11 @@ class ArticleForm(forms.ModelForm):
             'outbound_mark_value_mode',
             'outbound_mark_custom_value',
             'outbound_mark_replace_existing',
+            'engagement_event_enabled',
+            'engagement_event_param',
+            'engagement_event_value',
+            'engagement_utm_param',
+            'engagement_utm_value',
             'tracker_profile',
             'status',
         )
@@ -81,6 +86,13 @@ class ArticleForm(forms.ModelForm):
             and not cleaned_data.get('outbound_mark_custom_value')
         ):
             self.add_error('outbound_mark_custom_value', 'Укажите свое значение параметра.')
+        if cleaned_data.get('engagement_event_enabled'):
+            if not cleaned_data.get('engagement_event_param'):
+                self.add_error('engagement_event_param', 'Укажите параметр события для трекера.')
+            if not cleaned_data.get('engagement_event_value'):
+                self.add_error('engagement_event_value', 'Укажите значение события.')
+            if cleaned_data.get('engagement_utm_param') and not cleaned_data.get('engagement_utm_value'):
+                self.add_error('engagement_utm_value', 'Укажите значение UTM-метки или очистите имя UTM-параметра.')
 
         return cleaned_data
 

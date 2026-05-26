@@ -9,13 +9,33 @@
     {% csrf_token %}
     {{ form.non_field_errors }}
     {% for field in form %}
-      <label class="{% if field.name == 'body' %}wide{% endif %}" data-article-field="{{ field.name }}">
-        <span>{{ field.label }}</span>
-        {{ field }}
-        {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
-        {{ field.errors }}
-      </label>
+      {% if field.name != "engagement_event_enabled" and field.name != "engagement_event_param" and field.name != "engagement_event_value" and field.name != "engagement_utm_param" and field.name != "engagement_utm_value" %}
+        <label class="{% if field.name == 'body' %}wide{% endif %}" data-article-field="{{ field.name }}">
+          <span>{{ field.label }}</span>
+          {{ field }}
+          {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
+          {{ field.errors }}
+        </label>
+      {% endif %}
     {% endfor %}
+    <details class="advanced-settings wide">
+      <summary>
+        <span class="advanced-settings-chevron">V</span>
+        <span>Дополнительные настройки события</span>
+      </summary>
+      <div class="advanced-settings-grid">
+        {% for field in form %}
+          {% if field.name == "engagement_event_enabled" or field.name == "engagement_event_param" or field.name == "engagement_event_value" or field.name == "engagement_utm_param" or field.name == "engagement_utm_value" %}
+            <label data-article-field="{{ field.name }}">
+              <span>{{ field.label }}</span>
+              {{ field }}
+              {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
+              {{ field.errors }}
+            </label>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
   <div class="form-actions wide">
     <button class="button primary" type="submit">Сохранить</button>
       {% if article %}

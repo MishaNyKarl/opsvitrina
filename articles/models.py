@@ -1,11 +1,18 @@
 import uuid
 
+from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 
 from core.models import OwnedModel, TimestampedModel
+
+
+TRACKING_PARAM_VALIDATOR = RegexValidator(
+    regex=r'^[A-Za-z_][A-Za-z0-9_.-]*$',
+    message='Имя параметра может содержать латинские буквы, цифры, "_", "." и "-", но должно начинаться с буквы или "_".',
+)
 
 
 class ArticleStatus(models.TextChoices):
@@ -197,6 +204,28 @@ class Article(OwnedModel):
     )
     outbound_mark_custom_value = models.CharField('Свое значение UTM/параметра', max_length=160, blank=True)
     outbound_mark_replace_existing = models.BooleanField('Перезаписывать существующий параметр', default=False)
+    engagement_event_enabled = models.BooleanField(
+        'Отправлять событие вовлеченного клика',
+        default=False,
+        help_text='Срабатывает один раз: больше 60 секунд на статье, скролл 25%+ и клик по баннеру или следующей статье.',
+    )
+    engagement_event_param = models.CharField(
+        'Параметр события в трекере',
+        max_length=80,
+        default='event30',
+        validators=[TRACKING_PARAM_VALIDATOR],
+        help_text='Например event30. Этот параметр будет отправлен в профиль трекера.',
+    )
+    engagement_event_value = models.CharField('Значение события', max_length=80, default='1')
+    engagement_utm_param = models.CharField(
+        'UTM-параметр для клика',
+        max_length=80,
+        blank=True,
+        default='utm_content',
+        validators=[TRACKING_PARAM_VALIDATOR],
+        help_text='Будет добавлен к URL баннера или следующей статьи при срабатывании события. Оставьте пустым, если метка не нужна.',
+    )
+    engagement_utm_value = models.CharField('UTM-значение для клика', max_length=160, blank=True, default='engaged_click')
     tracker_profile = models.ForeignKey(
         'tracking.TrackerProfile',
         verbose_name='Профиль трекера',

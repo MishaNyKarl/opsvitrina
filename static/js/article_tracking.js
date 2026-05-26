@@ -8,6 +8,9 @@
   const scrollMarks = [25, 50, 75, 100];
   const sentScrollMarks = new Set();
   const externalSent = new Set();
+  let spentMinute = false;
+  let scrolled25 = false;
+  let engagementSent = false;
 
   function getSessionId() {
     const key = 'opsvitrina_article_session_id';
@@ -113,6 +116,30 @@
     } catch (error) {}
   }
 
+  function sendExternalEngagement() {
+    const tracker = externalTracker();
+    const engagement = config.engagementEvent || {};
+    if (!engagement.enabled || !tracker || !tracker.endpointUrl || !engagement.eventParam) {
+      return;
+    }
+
+    const clickId = externalClickId(tracker);
+    if (!clickId) {
+      return;
+    }
+
+    try {
+      const url = new URL(tracker.endpointUrl, window.location.href);
+      url.searchParams.set(tracker.updateClickIdParam || 'upd_clickid', clickId);
+      url.searchParams.set(engagement.eventParam, engagement.eventValue || tracker.eventValue || '1');
+      fetch(url.toString(), {
+        mode: 'no-cors',
+        credentials: 'omit',
+        keepalive: true,
+      }).catch(() => {});
+    } catch (error) {}
+  }
+
   function shouldMarkUrl(url) {
     return config.outboundMarkEnabled && /^https?:$/i.test(url.protocol);
   }
@@ -128,6 +155,39 @@
       url.searchParams.set(param, value);
     }
     return url.toString();
+  }
+
+  function engagementMarkedUrl(rawUrl) {
+    const engagement = config.engagementEvent || {};
+    const url = new URL(rawUrl, window.location.href);
+    if (engagement.enabled && engagement.utmParam && engagement.utmValue && /^https?:$/i.test(url.protocol)) {
+      url.searchParams.set(engagement.utmParam, engagement.utmValue);
+    }
+    return url.toString();
+  }
+
+  function isEngagementTarget(link, targetUrl) {
+    if (link.dataset && link.dataset.bannerId) {
+      return true;
+    }
+
+    const url = new URL(targetUrl, window.location.href);
+    if (url.pathname.includes('/banners/')) {
+      return true;
+    }
+
+    return url.origin === window.location.origin && /^\/[ag]\//.test(url.pathname);
+  }
+
+  function shouldSendEngagement(link, targetUrl) {
+    const engagement = config.engagementEvent || {};
+    return Boolean(
+      engagement.enabled &&
+      !engagementSent &&
+      spentMinute &&
+      scrolled25 &&
+      isEngagementTarget(link, targetUrl)
+    );
   }
 
   document.addEventListener('click', function (event) {
@@ -147,7 +207,23 @@
       return;
     }
 
-    const nextUrl = markedUrl(originalHref);
+    let nextUrl = markedUrl(originalHref);
+    const sendEngagement = shouldSendEngagement(link, nextUrl);
+    if (sendEngagement) {
+      nextUrl = engagementMarkedUrl(nextUrl);
+      engagementSent = true;
+      send('engagement_click', {
+        target_url: nextUrl,
+        element_text: (link.textContent || '').trim().slice(0, 160),
+        engagement_conditions: {
+          time_60s: spentMinute,
+          scroll_25: scrolled25,
+          target: 'banner_or_next_article',
+        },
+      }, true);
+      sendExternalEngagement();
+    }
+
     if (nextUrl !== link.href) {
       link.href = nextUrl;
     }
@@ -163,6 +239,7 @@
     scrollMarks.forEach((mark) => {
       if (depth >= mark && !sentScrollMarks.has(mark)) {
         sentScrollMarks.add(mark);
+        if (mark === 25) scrolled25 = true;
         send('scroll_depth', { scroll_depth: mark });
         if (mark === 25) sendExternal('scroll_25');
         if (mark === 50) sendExternal('scroll_50');
@@ -181,6 +258,9 @@
   window.setTimeout(() => send('time_15s'), 15000);
   window.setTimeout(() => send('time_30s'), 30000);
   window.setTimeout(() => sendExternal('time_30s'), 30000);
-  window.setTimeout(() => send('time_60s'), 60000);
+  window.setTimeout(() => {
+    spentMinute = true;
+    send('time_60s');
+  }, 60000);
   window.setTimeout(() => sendExternal('time_60s'), 60000);
 }());
