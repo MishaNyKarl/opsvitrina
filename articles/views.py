@@ -184,6 +184,28 @@ def _next_article_url(request, article, position=None):
     return _append_query_string(article.get_public_url(), query_string)
 
 
+def _format_feed_number(value):
+    if value >= 1000:
+        text = f'{value / 1000:.1f}'.replace('.', ',')
+        if text.endswith(',0'):
+            text = text[:-2]
+        return f'{text} к'
+    return str(value)
+
+
+def _next_feed_metrics(article, position):
+    seed = (article.id * 7919) + (position * 104729)
+    views = 650 + (seed % 185000)
+    likes = max(7, views // (18 + (seed % 17)))
+    comments = max(1, views // (210 + (seed % 140)))
+    return {
+        'views': views,
+        'views_label': _format_feed_number(views),
+        'likes': _format_feed_number(likes),
+        'comments': _format_feed_number(comments),
+    }
+
+
 def _client_ip(request):
     forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if forwarded_for:
@@ -401,6 +423,7 @@ def _next_feed_items(article, request, page, page_size):
             'position': position,
             'internal_vtr_name': f'article_{next_article.id}_feed_{position}',
             'excerpt': Truncator(strip_tags(next_article.body or '')).chars(150),
+            'metrics': _next_feed_metrics(next_article, position),
         })
     if banners and not items:
         items = [{'type': 'banner', 'banner': banner} for banner in banners]

@@ -1,3 +1,4 @@
+from django import forms as django_forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -8,7 +9,7 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from .forms import BannerFilterForm, BannerForm, BannerGroupForm, BannerUploadForm
+from .forms import BannerArticleFilterForm, BannerFilterForm, BannerForm, BannerGroupForm, BannerUploadForm
 from .models import Banner, BannerGroup, BannerPlacement, BannerStatus, CreativeHeadline, CreativeImage
 from core.tracking_urls import PLACEHOLDER_PATTERN, append_query_string as append_tracking_query_string, tracking_query_string
 
@@ -137,8 +138,15 @@ def banner_list(request):
 
 @login_required
 def banner_upload(request):
+    article_filter_form = BannerArticleFilterForm(request.GET or None, user=request.user)
+    article_filter_data = article_filter_form.cleaned_data if article_filter_form.is_valid() else None
     if request.method == 'POST':
-        form = BannerUploadForm(request.POST, request.FILES, user=request.user)
+        form = BannerUploadForm(
+            request.POST,
+            request.FILES,
+            user=request.user,
+            article_filter_data=article_filter_data,
+        )
         if form.is_valid():
             with transaction.atomic():
                 group = BannerGroup.objects.create(
@@ -194,11 +202,12 @@ def banner_upload(request):
             )
             return redirect('banners:list')
     else:
-        form = BannerUploadForm(user=request.user)
+        form = BannerUploadForm(user=request.user, article_filter_data=article_filter_data)
 
     return render(request, 'banners/banner_upload.html', {
         'page_title': 'Загрузка креативов',
         'form': form,
+        'article_filter_form': article_filter_form,
     })
 
 
@@ -242,6 +251,53 @@ def banner_group_toggle_status(request, pk):
 
 
 @login_required
+@require_POST
+def banner_group_bulk_action(request):
+    action = request.POST.get('action')
+    group_ids = request.POST.getlist('group_ids')
+    groups = BannerGroup.objects.visible_for(request.user).filter(id__in=group_ids)
+
+    if not group_ids:
+        messages.error(request, 'Выберите хотя бы одну группу баннеров.')
+        return redirect('banners:list')
+
+    if action == 'activate':
+        updated_count = groups.update(status=BannerStatus.ACTIVE)
+        messages.success(request, f'Групп баннеров включено: {updated_count}.')
+        return redirect('banners:list')
+
+    if action == 'deactivate':
+        updated_count = groups.update(status=BannerStatus.DRAFT)
+        messages.success(request, f'Групп баннеров выключено: {updated_count}.')
+        return redirect('banners:list')
+
+    if action == 'set_target_url':
+        try:
+            target_url = django_forms.URLField(required=False, max_length=2000).clean(request.POST.get('target_url', ''))
+        except django_forms.ValidationError as exc:
+            messages.error(request, 'Некорректная ссылка: ' + '; '.join(exc.messages))
+            return redirect('banners:list')
+        updated_count = groups.update(target_url=target_url)
+        Banner.objects.visible_for(request.user).filter(group__in=groups).update(target_url=target_url)
+        messages.success(request, f'Ссылка обновлена для групп: {updated_count}.')
+        return redirect('banners:list')
+
+    if action == 'set_banner_utm_param':
+        banner_utm_param = (request.POST.get('banner_utm_param') or '').strip() or 'ad_vtr_name'
+        try:
+            BannerGroup._meta.get_field('banner_utm_param').run_validators(banner_utm_param)
+        except django_forms.ValidationError as exc:
+            messages.error(request, 'Некорректное имя UTM-параметра: ' + '; '.join(exc.messages))
+            return redirect('banners:list')
+        updated_count = groups.update(banner_utm_param=banner_utm_param)
+        messages.success(request, f'UTM-параметр обновлен для групп: {updated_count}.')
+        return redirect('banners:list')
+
+    messages.error(request, 'Неизвестное действие с группами баннеров.')
+    return redirect('banners:list')
+
+
+@login_required
 def banner_update(request, pk):
     banner = get_object_or_404(
         Banner.objects.visible_for(request.user).select_related('group', 'image', 'headline'),
@@ -261,6 +317,33 @@ def banner_update(request, pk):
         'form': form,
         'banner': banner,
     })
+
+
+@login_required
+@require_POST
+def banner_update_utm(request, pk):
+    banner = get_object_or_404(
+        Banner.objects.visible_for(request.user).select_related('group', 'image', 'headline'),
+        pk=pk,
+    )
+    form = BannerForm({
+        'status': banner.status,
+        'target_url': banner.target_url,
+        'utm_key': (request.POST.get('utm_key') or '').strip(),
+        'banner_utm_param': (request.POST.get('banner_utm_param') or '').strip(),
+        'priority': banner.priority,
+        'display_tier': banner.display_tier,
+    }, instance=banner)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f'UTM баннера #{banner.id} обновлен.')
+    else:
+        messages.error(request, 'Не удалось обновить UTM: ' + '; '.join(
+            message
+            for errors in form.errors.values()
+            for message in errors
+        ))
+    return redirect(request.POST.get('next') or 'banners:list')
 
 
 @login_required

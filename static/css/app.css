@@ -227,6 +227,21 @@ a {
   background: #fbfcfe;
 }
 
+.bulk-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.bulk-select input {
+  width: auto;
+  min-height: 0;
+}
+
 .group-card h3 {
   margin: 0 0 16px;
   font-size: 18px;
@@ -275,6 +290,35 @@ a {
   grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(150px, 190px)) auto auto;
   gap: 12px;
   margin-bottom: 28px;
+}
+
+.inline-edit-form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(120px, 170px) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.inline-edit-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.inline-edit-form span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.inline-edit-form input {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.button.small {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 .stats-filters {

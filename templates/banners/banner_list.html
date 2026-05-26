@@ -7,9 +7,27 @@
     <a class="button primary" href="{% url 'banners:upload' %}">Загрузить креативы</a>
   </div>
 
+  <form id="banner-group-bulk-form" method="post" action="{% url 'banners:group_bulk_action' %}" class="filters">
+    {% csrf_token %}
+    <select name="action" required>
+      <option value="">Действие с группами</option>
+      <option value="activate">Включить</option>
+      <option value="deactivate">Выключить</option>
+      <option value="set_target_url">Поменять ссылку</option>
+      <option value="set_banner_utm_param">Поменять UTM-параметр</option>
+    </select>
+    <input type="url" name="target_url" placeholder="https://example.com/landing">
+    <input type="text" name="banner_utm_param" placeholder="ad_vtr_name">
+    <button class="button primary" type="submit">Применить к выбранным</button>
+  </form>
+
   <div class="group-grid">
     {% for group in groups %}
       <article class="group-card">
+        <label class="bulk-select">
+          <input type="checkbox" name="group_ids" value="{{ group.id }}" form="banner-group-bulk-form">
+          <span>Выбрать</span>
+        </label>
         <h3><a href="{% url 'banners:group_update' group.pk %}">{{ group.name }}</a></h3>
         <dl>
           <div><dt>Картинки</dt><dd>{{ group.images.count }}</dd></div>
@@ -84,8 +102,21 @@
           </td>
           <td><a href="{% url 'banners:update' banner.pk %}">{{ banner.headline.text }}</a></td>
           <td><a href="{% url 'banners:group_update' banner.group.pk %}">{{ banner.group.name }}</a></td>
-          <td><code>{{ banner.utm_key }}</code></td>
-          <td><code>{{ banner.effective_banner_utm_param }}</code></td>
+          <td colspan="2">
+            <form method="post" action="{% url 'banners:update_utm' banner.pk %}" class="inline-edit-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <label>
+                <span>UTM</span>
+                <input type="text" name="utm_key" value="{{ banner.utm_key }}" required>
+              </label>
+              <label>
+                <span>Параметр</span>
+                <input type="text" name="banner_utm_param" value="{{ banner.banner_utm_param }}" placeholder="{{ banner.group.banner_utm_param }}">
+              </label>
+              <button class="button small" type="submit">Сохранить</button>
+            </form>
+          </td>
           <td>{% if banner.target_url %}своя{% elif banner.group.target_url %}из группы{% else %}-{% endif %}</td>
           <td>{{ banner.get_display_tier_display }}</td>
           <td>{{ banner.priority }}</td>

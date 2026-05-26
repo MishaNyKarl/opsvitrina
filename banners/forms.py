@@ -1,6 +1,6 @@
 from django import forms
 
-from articles.models import Article, ArticleGroup
+from articles.models import Article, ArticleGroup, ArticleStatus, Vertical
 
 from .models import BANNER_UTM_PARAM_VALIDATOR, Banner, BannerGroup, BannerSlot, BannerTier
 
@@ -68,10 +68,27 @@ class BannerUploadForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 6, 'placeholder': 'Один заголовок на строку'}),
     )
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user=None, article_filter_data=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user is not None:
-            self.fields['articles'].queryset = Article.objects.visible_for(user)
+            articles = Article.objects.visible_for(user).select_related('vertical')
+            if article_filter_data:
+                query = article_filter_data.get('q')
+                status = article_filter_data.get('status')
+                country = article_filter_data.get('country')
+                vertical = article_filter_data.get('vertical')
+                article_group = article_filter_data.get('article_group')
+                if query:
+                    articles = articles.filter(title__icontains=query)
+                if status:
+                    articles = articles.filter(status=status)
+                if country:
+                    articles = articles.filter(country__iexact=country)
+                if vertical:
+                    articles = articles.filter(vertical=vertical)
+                if article_group:
+                    articles = articles.filter(groups=article_group)
+            self.fields['articles'].queryset = articles.distinct().order_by('title')
             self.fields['article_groups'].queryset = ArticleGroup.objects.visible_for(user)
 
     def clean_images(self):
@@ -121,6 +138,39 @@ class BannerFilterForm(forms.Form):
         super().__init__(*args, **kwargs)
         if user is not None:
             self.fields['group'].queryset = BannerGroup.objects.visible_for(user)
+
+
+class BannerArticleFilterForm(forms.Form):
+    q = forms.CharField(label='Поиск по статьям', required=False)
+    article_group = forms.ModelChoiceField(
+        label='Группа статей',
+        required=False,
+        queryset=ArticleGroup.objects.none(),
+        empty_label='Все группы',
+    )
+    status = forms.ChoiceField(
+        label='Статус',
+        required=False,
+        choices=(('', 'Все статусы'),) + tuple(ArticleStatus.choices),
+    )
+    country = forms.CharField(
+        label='GEO',
+        required=False,
+        max_length=2,
+        widget=forms.TextInput(attrs={'placeholder': 'US'}),
+    )
+    vertical = forms.ModelChoiceField(
+        label='Вертикаль',
+        required=False,
+        queryset=Vertical.objects.none(),
+        empty_label='Все вертикали',
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields['article_group'].queryset = ArticleGroup.objects.visible_for(user)
+            self.fields['vertical'].queryset = Vertical.objects.all()
 
 
 class BannerGroupForm(forms.ModelForm):

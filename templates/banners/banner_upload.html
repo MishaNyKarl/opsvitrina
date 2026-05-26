@@ -5,6 +5,16 @@
   <div class="breadcrumbs"><a href="{% url 'banners:list' %}">Баннеры</a> / Загрузка креативов</div>
   <h2>Загрузка креативов</h2>
 
+  <form method="get" class="filters">
+    {{ article_filter_form.q }}
+    {{ article_filter_form.article_group }}
+    {{ article_filter_form.status }}
+    {{ article_filter_form.country }}
+    {{ article_filter_form.vertical }}
+    <button class="button primary" type="submit">Отфильтровать статьи</button>
+    <a class="button" href="{% url 'banners:upload' %}">Сбросить</a>
+  </form>
+
   <form method="post" enctype="multipart/form-data" class="form-grid">
     {% csrf_token %}
     {{ form.non_field_errors }}
