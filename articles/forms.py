@@ -42,9 +42,12 @@ class ArticleForm(forms.ModelForm):
             'outbound_mark_value_mode',
             'outbound_mark_custom_value',
             'outbound_mark_replace_existing',
+            'article_utm_key',
+            'article_utm_param',
             'engagement_event_enabled',
             'engagement_event_param',
             'engagement_event_value',
+            'engagement_tracker_url',
             'engagement_utm_param',
             'engagement_utm_value',
             'tracker_profile',
@@ -82,6 +85,8 @@ class ArticleForm(forms.ModelForm):
             self.add_error('html_file', 'Загрузите файл с расширением .html или .htm.')
         if cleaned_data.get('outbound_mark_enabled') and not cleaned_data.get('outbound_mark_param'):
             self.add_error('outbound_mark_param', 'Укажите имя параметра для исходящих ссылок.')
+        if not cleaned_data.get('article_utm_param'):
+            self.add_error('article_utm_param', 'Укажите имя UTM-параметра статьи.')
         if (
             cleaned_data.get('outbound_mark_enabled')
             and cleaned_data.get('outbound_mark_value_mode') == OutboundMarkValueMode.CUSTOM

@@ -3,6 +3,7 @@ import random
 import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from django import forms as django_forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -127,11 +128,15 @@ def _query_dict(query_string):
 
 
 def _article_url_values(article):
+    article_utm_key = article.effective_article_utm_key
+    article_utm_param = article.effective_article_utm_param
     return {
         'article_id': str(article.id),
         'article_public_id': str(article.public_id),
         'article_uuid': str(article.public_id),
-        'ad_vtr_name': f'article_{article.id}',
+        'ad_vtr_name': article_utm_key,
+        'article_utm': article_utm_key,
+        article_utm_param: article_utm_key,
     }
 
 
@@ -166,6 +171,8 @@ def _article_ui_texts(article, request):
 def _next_article_url(request, article, position=None):
     internal_position = position or 1
     internal_vtr_name = f'article_{article.id}_feed_{internal_position}'
+    article_utm_key = article.effective_article_utm_key
+    article_utm_param = article.effective_article_utm_param
     query_string = tracking_query_string(
         request.META.get('QUERY_STRING', ''),
         _article_url_values(article),
@@ -173,7 +180,9 @@ def _next_article_url(request, article, position=None):
             'v_depth': 2,
             'article_id': article.id,
             'article_public_id': article.public_id,
-            'ad_vtr_name': f'article_{article.id}',
+            'ad_vtr_name': article_utm_key,
+            'article_utm': article_utm_key,
+            article_utm_param: article_utm_key,
             'internal_vtr_name': internal_vtr_name,
             'internal_article_id': article.id,
             'internal_article_public_id': article.public_id,
@@ -198,11 +207,19 @@ def _next_feed_metrics(article, position):
     views = 650 + (seed % 185000)
     likes = max(7, views // (18 + (seed % 17)))
     comments = max(1, views // (210 + (seed % 140)))
+    age_minutes = 15 + (seed % ((2 * 24 * 60) - 15 + 1))
+    if age_minutes < 60:
+        age_label = f'{age_minutes} min'
+    elif age_minutes < 24 * 60:
+        age_label = f'{max(1, round(age_minutes / 60))} h'
+    else:
+        age_label = f'{max(1, round(age_minutes / (24 * 60)))} d'
     return {
         'views': views,
         'views_label': _format_feed_number(views),
         'likes': _format_feed_number(likes),
         'comments': _format_feed_number(comments),
+        'age_label': age_label,
     }
 
 
@@ -226,6 +243,7 @@ def _article_tracking_config(article):
             'enabled': article.engagement_event_enabled,
             'eventParam': article.engagement_event_param,
             'eventValue': article.engagement_event_value,
+            'endpointUrl': article.engagement_tracker_url,
             'utmParam': article.engagement_utm_param,
             'utmValue': article.engagement_utm_value,
         },
@@ -239,7 +257,7 @@ def _html_tracking_snippet(article):
         '<script>'
         f'window.OPSVITRINA_ARTICLE_TRACKING = JSON.parse("{escapejs(config)}");'
         '</script>'
-        '<script src="/static/js/article_tracking.js?v=20260526-1" defer></script>'
+        '<script src="/static/js/article_tracking.js?v=20260528-1" defer></script>'
     )
 
 
@@ -741,6 +759,52 @@ def article_toggle_status(request, pk):
 
 @login_required
 @require_POST
+def article_update_utm(request, pk):
+    article = get_object_or_404(Article.objects.visible_for(request.user), pk=pk)
+    article.article_utm_key = (request.POST.get('article_utm_key') or '').strip()
+    article.article_utm_param = (request.POST.get('article_utm_param') or '').strip() or 'ad_vtr_name'
+    try:
+        article.full_clean(exclude=[
+            'title',
+            'article_type',
+            'category',
+            'vertical',
+            'tags',
+            'country',
+            'language',
+            'image',
+            'body',
+            'external_url',
+            'html_file',
+            'outbound_mark_enabled',
+            'outbound_mark_param',
+            'outbound_mark_value_mode',
+            'outbound_mark_custom_value',
+            'outbound_mark_replace_existing',
+            'engagement_event_enabled',
+            'engagement_event_param',
+            'engagement_event_value',
+            'engagement_tracker_url',
+            'engagement_utm_param',
+            'engagement_utm_value',
+            'tracker_profile',
+            'status',
+        ])
+    except django_forms.ValidationError as exc:
+        messages.error(request, 'Не удалось обновить UTM статьи: ' + '; '.join(
+            message
+            for errors in exc.message_dict.values()
+            for message in errors
+        ))
+        return redirect(request.POST.get('next') or 'articles:list')
+
+    article.save(update_fields=['article_utm_key', 'article_utm_param', 'updated_at'])
+    messages.success(request, f'UTM статьи #{article.id} обновлен.')
+    return redirect(request.POST.get('next') or 'articles:list')
+
+
+@login_required
+@require_POST
 def article_group_toggle_status(request, pk):
     group = get_object_or_404(ArticleGroup.objects.visible_for(request.user), pk=pk)
     group.status = ArticleStatus.DRAFT if group.status == ArticleStatus.ACTIVE else ArticleStatus.ACTIVE
@@ -1019,6 +1083,8 @@ def public_article_next_feed(request, public_id):
 def public_article_group(request, public_id):
     group = get_object_or_404(ArticleGroup, public_id=public_id, status=ArticleStatus.ACTIVE)
     membership = _select_group_membership(group)
+    article_utm_key = membership.article.effective_article_utm_key
+    article_utm_param = membership.article.effective_article_utm_param
     merged_query_string = _merge_query_strings(request.META.get('QUERY_STRING', ''), membership.utm_query)
     target_query_string = tracking_query_string(
         merged_query_string,
@@ -1026,6 +1092,9 @@ def public_article_group(request, public_id):
         add_missing={
             'article_id': membership.article.id,
             'article_public_id': membership.article.public_id,
+            'ad_vtr_name': article_utm_key,
+            'article_utm': article_utm_key,
+            article_utm_param: article_utm_key,
             'v_depth': 1,
             'v_group': group.public_id,
         },

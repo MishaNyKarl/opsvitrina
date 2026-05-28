@@ -234,6 +234,19 @@ class Article(OwnedModel):
     )
     outbound_mark_custom_value = models.CharField('Свое значение UTM/параметра', max_length=160, blank=True)
     outbound_mark_replace_existing = models.BooleanField('Перезаписывать существующий параметр', default=False)
+    article_utm_key = models.CharField(
+        'UTM-метка статьи',
+        max_length=120,
+        blank=True,
+        help_text='Эта метка подставляется в ad_vtr_name и выбранный UTM-параметр статьи.',
+    )
+    article_utm_param = models.CharField(
+        'Имя UTM-параметра статьи',
+        max_length=80,
+        default='ad_vtr_name',
+        validators=[TRACKING_PARAM_VALIDATOR],
+        help_text='Например: ad_vtr_name. В этот параметр будет подставляться UTM-метка статьи.',
+    )
     engagement_event_enabled = models.BooleanField(
         'Отправлять событие вовлеченного клика',
         default=False,
@@ -247,6 +260,12 @@ class Article(OwnedModel):
         help_text='Например event30. Этот параметр будет отправлен в профиль трекера.',
     )
     engagement_event_value = models.CharField('Значение события', max_length=80, default='1')
+    engagement_tracker_url = models.URLField(
+        'Ссылка трекера для события вовлеченности',
+        max_length=2000,
+        blank=True,
+        help_text='Если заполнено, событие вовлеченности отправляется сюда. Если пусто, используется ссылка из профиля трекера.',
+    )
     engagement_utm_param = models.CharField(
         'UTM-параметр для клика',
         max_length=80,
@@ -301,6 +320,14 @@ class Article(OwnedModel):
         if self.outbound_mark_value_mode == OutboundMarkValueMode.CUSTOM:
             return self.outbound_mark_custom_value
         return str(self.id)
+
+    @property
+    def effective_article_utm_key(self):
+        return self.article_utm_key or f'article_{self.id}'
+
+    @property
+    def effective_article_utm_param(self):
+        return self.article_utm_param or 'ad_vtr_name'
 
     def get_tracker_profile(self):
         if self.tracker_profile_id and self.tracker_profile and self.tracker_profile.is_active:

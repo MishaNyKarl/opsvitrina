@@ -13,6 +13,7 @@ urlpatterns = [
     path('groups/<int:pk>/toggle-status/', views.article_group_toggle_status, name='group_toggle_status'),
     path('groups/<int:pk>/delete/', views.article_group_delete, name='group_delete'),
     path('<int:pk>/edit/', views.article_update, name='update'),
+    path('<int:pk>/utm/', views.article_update_utm, name='update_utm'),
     path('<int:pk>/toggle-status/', views.article_toggle_status, name='toggle_status'),
     path('<int:pk>/delete/', views.article_delete, name='delete'),
     path('<int:pk>/banners/pin/', views.article_pin_banner, name='pin_banner'),

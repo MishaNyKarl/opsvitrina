@@ -58,6 +58,8 @@
         <th>Категория</th>
         <th>Вертикаль</th>
         <th>Группы</th>
+        <th>UTM</th>
+        <th>UTM-параметр</th>
         <th>Язык</th>
         <th>Страна</th>
         <th>Дата</th>
@@ -88,6 +90,21 @@
               -
             {% endfor %}
           </td>
+          <td colspan="2">
+            <form method="post" action="{% url 'articles:update_utm' article.pk %}" class="inline-edit-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <label>
+                <span>UTM</span>
+                <input type="text" name="article_utm_key" value="{{ article.article_utm_key }}" placeholder="{{ article.effective_article_utm_key }}">
+              </label>
+              <label>
+                <span>Параметр</span>
+                <input type="text" name="article_utm_param" value="{{ article.article_utm_param }}" placeholder="ad_vtr_name" required>
+              </label>
+              <button class="button small" type="submit">Сохранить</button>
+            </form>
+          </td>
           <td>{{ article.language|default:"-" }}</td>
           <td>{{ article.country|default:"-" }}</td>
           <td>{{ article.created_at|date:"d.m.y H:i" }}</td>
@@ -112,7 +129,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="13" class="empty">Статей пока нет</td></tr>
+        <tr><td colspan="15" class="empty">Статей пока нет</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -7,7 +7,6 @@
       </span>
       <span class="next-feed-body">
         <strong>{{ item.banner.headline.text }}</strong>
-        <em>{{ item.banner.group.name }}</em>
       </span>
     </a>
   {% else %}
@@ -16,7 +15,7 @@
         <span class="source-avatar small">{{ item.article.title|first|upper }}</span>
         <span>
           <strong>{{ item.article.vertical.name|default:ui_texts.brand }}</strong>
-          <small>{{ ui_texts.minute }}</small>
+          <small>{{ item.metrics.age_label }}</small>
         </span>
       </span>
       <strong class="next-feed-title">{{ item.article.title }}</strong>

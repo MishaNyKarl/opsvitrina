@@ -12,6 +12,7 @@ class TrackerProfileForm(forms.ModelForm):
     scroll_50_event = forms.CharField(label='Скролл 50%', required=False, max_length=80)
     scroll_75_event = forms.CharField(label='Скролл 75%', required=False, max_length=80)
     any_click_event = forms.CharField(label='Любой клик', required=False, max_length=80)
+    engagement_click_event = forms.CharField(label='Вовлеченный клик', required=False, max_length=80)
 
     class Meta:
         model = TrackerProfile
@@ -51,6 +52,7 @@ class TrackerProfileForm(forms.ModelForm):
             'scroll_50': self.cleaned_data.get('scroll_50_event') or '',
             'scroll_75': self.cleaned_data.get('scroll_75_event') or '',
             'any_click': self.cleaned_data.get('any_click_event') or '',
+            'engagement_click': self.cleaned_data.get('engagement_click_event') or '',
         }
         if commit:
             instance.save()

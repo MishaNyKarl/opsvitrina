@@ -13,6 +13,7 @@ def default_tracker_events():
         'scroll_50': 'event15',
         'scroll_75': 'event16',
         'any_click': 'event20',
+        'engagement_click': 'event30',
     }
 
 
@@ -46,12 +47,14 @@ class TrackerProfile(OwnedModel):
         return self.name
 
     def frontend_config(self):
+        event_params = default_tracker_events()
+        event_params.update(self.event_params or {})
         return {
             'endpointUrl': self.endpoint_url,
             'inboundClickIdParam': self.inbound_click_id_param,
             'updateClickIdParam': self.update_click_id_param,
             'eventValue': self.event_value,
-            'eventParams': self.event_params or default_tracker_events(),
+            'eventParams': event_params,
         }
 
 

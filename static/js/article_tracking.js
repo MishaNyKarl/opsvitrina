@@ -119,7 +119,10 @@
   function sendExternalEngagement() {
     const tracker = externalTracker();
     const engagement = config.engagementEvent || {};
-    if (!engagement.enabled || !tracker || !tracker.endpointUrl || !engagement.eventParam) {
+    const eventParams = (tracker && tracker.eventParams) || {};
+    const eventParam = engagement.eventParam || eventParams.engagement_click;
+    const endpointUrl = engagement.endpointUrl || (tracker && tracker.endpointUrl);
+    if (!engagement.enabled || !tracker || !endpointUrl || !eventParam) {
       return;
     }
 
@@ -129,9 +132,9 @@
     }
 
     try {
-      const url = new URL(tracker.endpointUrl, window.location.href);
+      const url = new URL(endpointUrl, window.location.href);
       url.searchParams.set(tracker.updateClickIdParam || 'upd_clickid', clickId);
-      url.searchParams.set(engagement.eventParam, engagement.eventValue || tracker.eventValue || '1');
+      url.searchParams.set(eventParam, engagement.eventValue || tracker.eventValue || '1');
       fetch(url.toString(), {
         mode: 'no-cors',
         credentials: 'omit',
