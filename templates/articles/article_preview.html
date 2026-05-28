@@ -42,10 +42,8 @@
         {% endif %}
 
         <div class="article-body">
-          {{ article.body|safe }}
+          {{ article_body_html|safe }}
         </div>
-
-        {% include "articles/partials/banner_slot.html" with banner=banner_slots.in_article class_name="inline-ad-slot" fallback_class="inline-ad-slot" slot_name="in-article" fallback_text="Слот баннера внутри статьи" %}
       </article>
 
       <aside class="sidebar-slots" aria-label="Рекламные блоки справа">

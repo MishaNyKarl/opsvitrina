@@ -337,6 +337,101 @@ def _article_banners(article, request, enabled_slots=None):
     return slots
 
 
+def _banner_candidates_for_slot(article, request, slot):
+    display_tier = _request_banner_tier(request)
+    article_group_ids = list(article.groups.values_list('id', flat=True))
+    pinned = _placement_banners(article, display_tier, [slot]).get(slot)
+    banners = list(
+        Banner.objects
+        .filter(status=BannerStatus.ACTIVE, group__status=BannerStatus.ACTIVE, display_tier=display_tier)
+        .select_related('group', 'image', 'headline')
+        .filter(
+            models.Q(group__articles=article)
+            | models.Q(group__article_groups__in=article_group_ids)
+            | (models.Q(group__articles__isnull=True) & models.Q(group__article_groups__isnull=True))
+        )
+        .distinct()
+        .order_by('-priority', 'id')
+    )
+    candidates = []
+    if pinned and pinned.group.can_show_in_slot(slot):
+        candidates.append(pinned)
+    candidates.extend([
+        banner
+        for banner in banners
+        if banner.group.can_show_in_slot(slot) and (not pinned or banner.id != pinned.id)
+    ])
+    return candidates
+
+
+def _inline_article_banners(article, request, count):
+    if count <= 0:
+        return []
+    candidates = _banner_candidates_for_slot(article, request, BannerSlot.IN_ARTICLE)
+    if not candidates:
+        return []
+    weights = [max(banner.priority, 0) + 1 for banner in candidates]
+    banners = random.choices(candidates, weights=weights, k=count)
+    Banner.objects.filter(id__in={banner.id for banner in banners}).update(impressions=models.F('impressions') + 1)
+    return banners
+
+
+def _inline_banner_html(request, banner, index):
+    return render_to_string(
+        'articles/partials/banner_slot.html',
+        {
+            'banner': banner,
+            'class_name': 'inline-ad-slot',
+            'slot_name': f'in-article-{index}',
+        },
+        request=request,
+    )
+
+
+def _article_body_with_inline_banners(article, request):
+    body = article.body or ''
+    paragraph_pattern = re.compile(r'(<p\b[^>]*>.*?</p>)', re.IGNORECASE | re.DOTALL)
+    paragraphs = paragraph_pattern.findall(body)
+    if not paragraphs:
+        return body
+
+    body_parts = paragraph_pattern.split(body)
+    banner_after_paragraphs = []
+    chars_since_banner = 0
+    text_since_banner = 0
+    for paragraph_index, paragraph in enumerate(paragraphs, start=1):
+        text_length = len(strip_tags(paragraph).strip())
+        chars_since_banner += text_length
+        text_since_banner += 1 if text_length else 0
+        if chars_since_banner >= 700 and text_since_banner >= 2:
+            banner_after_paragraphs.append(paragraph_index)
+            chars_since_banner = 0
+            text_since_banner = 0
+
+    if len(paragraphs) >= 2 and not banner_after_paragraphs:
+        banner_after_paragraphs = [min(2, len(paragraphs))]
+
+    banners = _inline_article_banners(article, request, len(banner_after_paragraphs))
+    if not banners:
+        return body
+
+    banners_by_paragraph = {
+        paragraph_index: _inline_banner_html(request, banner, index)
+        for index, (paragraph_index, banner) in enumerate(zip(banner_after_paragraphs, banners), start=1)
+    }
+
+    result = []
+    paragraph_index = 0
+    for part in body_parts:
+        result.append(part)
+        if paragraph_pattern.fullmatch(part):
+            paragraph_index += 1
+            banner_html = banners_by_paragraph.get(paragraph_index)
+            if banner_html:
+                result.append(banner_html)
+    return ''.join(result)
+
+
 def _placement_banners(article, display_tier, slot_names):
     placements = (
         BannerPlacement.objects
@@ -402,7 +497,6 @@ def _next_feed_banners(article, request, count):
     display_tier = _request_banner_tier(request)
     article_group_ids = list(article.groups.values_list('id', flat=True))
     pinned_banners = _next_feed_pinned_banners(article, request)
-    pinned_ids = {banner.id for banner in pinned_banners}
     query_banners = list(
         Banner.objects
         .filter(status=BannerStatus.ACTIVE, group__status=BannerStatus.ACTIVE, display_tier=display_tier)
@@ -412,11 +506,11 @@ def _next_feed_banners(article, request, count):
             | models.Q(group__article_groups__in=article_group_ids)
             | (models.Q(group__articles__isnull=True) & models.Q(group__article_groups__isnull=True))
         )
-        .exclude(id__in=pinned_ids)
         .distinct()
-        .order_by('-priority', '-impressions', 'id')
+        .order_by('-priority', 'id')
     )
-    banners = pinned_banners + query_banners
+    pinned_ids = {banner.id for banner in pinned_banners}
+    banners = pinned_banners + [banner for banner in query_banners if banner.id not in pinned_ids]
     if not banners:
         return []
     return [banners[index % len(banners)] for index in range(count)]
@@ -424,16 +518,12 @@ def _next_feed_banners(article, request, count):
 
 def _next_feed_items(article, request, page, page_size):
     articles = _next_feed_articles(article, request, page, page_size)
-    banner_count = max(2, page_size // 3)
+    banner_count = page_size
     banners = _next_feed_banners(article, request, banner_count)
     items = []
     banner_index = 0
     for index, next_article in enumerate(articles):
         position = (max(page, 0) * page_size) + index + 1
-        if index > 0 and index % 3 == 0 and banners:
-            banner = banners[banner_index % len(banners)]
-            items.append({'type': 'banner', 'banner': banner})
-            banner_index += 1
         items.append({
             'type': 'article',
             'article': next_article,
@@ -443,6 +533,10 @@ def _next_feed_items(article, request, page, page_size):
             'excerpt': Truncator(strip_tags(next_article.body or '')).chars(150),
             'metrics': _next_feed_metrics(next_article, position),
         })
+        if banners:
+            banner = banners[banner_index % len(banners)]
+            items.append({'type': 'banner', 'banner': banner})
+            banner_index += 1
     if banners and not items:
         items = [{'type': 'banner', 'banner': banner} for banner in banners]
     shown_banner_ids = {item['banner'].id for item in items if item['type'] == 'banner'}
@@ -519,9 +613,15 @@ def _render_article_response(request, article, extra_query_string=''):
             html = _inject_html_banners(html, article, request)
             return HttpResponse(_inject_html_tracking(html, article), content_type='text/html; charset=utf-8')
 
+    banner_slots = _article_banners(
+        article,
+        request,
+        enabled_slots=[slot for slot, _label in BannerSlot.choices if slot != BannerSlot.IN_ARTICLE],
+    )
     return render(request, 'articles/article_preview.html', {
         'article': article,
-        'banner_slots': _article_banners(article, request),
+        'article_body_html': _article_body_with_inline_banners(article, request),
+        'banner_slots': banner_slots,
         'tracking_config': _article_tracking_config(article),
         'next_feed_url': reverse('public_article_next_feed', kwargs={'public_id': article.public_id}),
         'ui_texts': _article_ui_texts(article, request),
