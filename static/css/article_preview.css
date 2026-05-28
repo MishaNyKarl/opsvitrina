@@ -506,6 +506,8 @@ main {
 
 .next-feed-card--banner {
   border-color: #f3b8bc;
+  grid-template-rows: minmax(180px, auto) auto;
+  min-height: 0;
 }
 
 .next-feed-card--story {
@@ -598,6 +600,16 @@ main {
 .next-feed-media img {
   object-fit: cover;
   max-width: none;
+}
+
+  .next-feed-card--banner .next-feed-media {
+  padding: 10px;
+  background: #fff;
+}
+
+.next-feed-card--banner .next-feed-media img {
+  height: auto;
+  object-fit: contain;
 }
 
 .next-feed-placeholder {
@@ -955,8 +967,22 @@ main {
     height: 100%;
   }
 
-  .next-feed-card--banner .next-feed-media {
-    height: 190px;
+.next-feed-card--banner .next-feed-media {
+    height: auto;
+    min-height: 0;
+    padding: 8px;
+    background: #fff;
+  }
+
+  .next-feed-card--banner .next-feed-media img {
+    width: 100%;
+    height: auto;
+    max-height: 220px;
+    object-fit: contain;
+  }
+
+  .next-feed-card--banner .next-feed-body {
+    align-content: start;
   }
 
   .next-feed-card--story .next-feed-media {

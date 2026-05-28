@@ -243,9 +243,9 @@ class Article(OwnedModel):
     article_utm_param = models.CharField(
         'Имя UTM-параметра статьи',
         max_length=80,
-        default='ad_vtr_name',
+        default='article_name',
         validators=[TRACKING_PARAM_VALIDATOR],
-        help_text='Например: ad_vtr_name. В этот параметр будет подставляться UTM-метка статьи.',
+        help_text='Например: article_name. В этот параметр будет подставляться UTM-метка статьи.',
     )
     engagement_event_enabled = models.BooleanField(
         'Отправлять событие вовлеченного клика',
@@ -327,7 +327,7 @@ class Article(OwnedModel):
 
     @property
     def effective_article_utm_param(self):
-        return self.article_utm_param or 'ad_vtr_name'
+        return self.article_utm_param or 'article_name'
 
     def get_tracker_profile(self):
         if self.tracker_profile_id and self.tracker_profile and self.tracker_profile.is_active:

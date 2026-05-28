@@ -510,10 +510,39 @@ def _next_feed_banners(article, request, count):
         .order_by('-priority', 'id')
     )
     pinned_ids = {banner.id for banner in pinned_banners}
-    banners = pinned_banners + [banner for banner in query_banners if banner.id not in pinned_ids]
+    banners = pinned_banners + _diagonal_banner_sequence([
+        banner
+        for banner in query_banners
+        if banner.id not in pinned_ids
+    ])
     if not banners:
         return []
     return [banners[index % len(banners)] for index in range(count)]
+
+
+def _diagonal_banner_sequence(banners):
+    if not banners:
+        return []
+
+    group_meta = {}
+    for banner in banners:
+        meta = group_meta.setdefault(banner.group_id, {'images': set(), 'headlines': set()})
+        meta['images'].add(banner.image_id)
+        meta['headlines'].add(banner.headline_id)
+
+    for meta in group_meta.values():
+        meta['image_order'] = {image_id: index for index, image_id in enumerate(sorted(meta['images']))}
+        meta['headline_order'] = {headline_id: index for index, headline_id in enumerate(sorted(meta['headlines']))}
+        meta['headline_count'] = max(1, len(meta['headline_order']))
+
+    def sort_key(banner):
+        meta = group_meta[banner.group_id]
+        image_index = meta['image_order'].get(banner.image_id, 0)
+        headline_index = meta['headline_order'].get(banner.headline_id, 0)
+        diagonal = (headline_index - image_index) % meta['headline_count']
+        return (-banner.priority, banner.group_id, diagonal, image_index, headline_index, banner.id)
+
+    return sorted(banners, key=sort_key)
 
 
 def _next_feed_items(article, request, page, page_size):
@@ -862,7 +891,7 @@ def article_toggle_status(request, pk):
 def article_update_utm(request, pk):
     article = get_object_or_404(Article.objects.visible_for(request.user), pk=pk)
     article.article_utm_key = (request.POST.get('article_utm_key') or '').strip()
-    article.article_utm_param = (request.POST.get('article_utm_param') or '').strip() or 'ad_vtr_name'
+    article.article_utm_param = (request.POST.get('article_utm_param') or '').strip() or 'article_name'
     try:
         article.full_clean(exclude=[
             'title',
